@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0,maximum-scale=5.0">
+    <title>AcgSearch</title>
+    <link rel="stylesheet" href="mdui-v1.0.2/css/mdui.min.css">
+    <script src="mdui-v1.0.2/js/mdui.min.js"></script>
+</head>
+<body>
+<div class="mdui-container">
+
+    <div class="mdui-m-t-5 mdui-m-b-5">
+        <div class="mdui-textfield">
+            <input id="keyword-input" class="mdui-textfield-input" type="text" placeholder="Keyword"/>
+        </div>
+        <div class="mdui-table-fluid">
+            <table class="mdui-table mdui-table-hoverable">
+                <thead>
+                <tr>
+                    <th id="table-body-total">0 / 0</th>
+                    <th>SIZE</th>
+                    <th>PICS</th>
+                </tr>
+                </thead>
+                <tbody id="table-body">
+                <!--            <tr>-->
+                <!--                <td>1</td>-->
+                <!--            </tr>-->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<script type="text/javascript">
+    function setTable(filter, all) {
+        mdui.$('#table-body-total').text(`${filter.length} / ${all.length}`)
+        mdui.$('#table-body').empty()
+        // filter.forEach(m => mdui.$('#table-body').append(`<!--<tr onclick='showCover("${m.cover}")'><td>${m.name}</td><td>${m.size}</td><td>${m.pics}</td></tr>-->`))
+        filter.forEach(m => mdui.$('#table-body').append(`<tr><td>${m.name}</td><td>${m.size}</td><td>${m.pics}</td></tr>`))
+    }
+
+    let comics = []
+    const URL_STATIC = 'https://raw.githubusercontent.com/prprhub/prprhub.github.io/main/static';
+    mdui.$.ajax({
+        method: 'GET',
+        url: `${URL_STATIC}/comic.json`,
+        dataType: 'json',
+        async: false,
+        success: function (data) {
+            comics = data
+        }
+    });
+    setTable(comics, comics)
+
+    let keywordInput = mdui.$('#keyword-input')
+    keywordInput.on({
+        // 'input': function (e) {
+        //     console.log(e)
+        // },
+        'keypress': e => {
+            if ('Enter' === e.key) {
+                search(keywordInput.val().trim())
+            }
+        }
+    })
+
+    function search(keyword) {
+        if (comics === null || comics.length === 0) {
+            return
+        }
+        const filter = mdui.$.map(comics, (m, index) => {
+            if (m.name.toLowerCase().includes(keyword.toLowerCase())) {
+                return m
+            }
+        })
+        if (filter.length === 0) {
+            mdui.snackbar('NO DATA', {
+                timeout: 1000
+            })
+        }
+        setTable(filter, comics)
+    }
+
+    function showCover(coverPath) {
+        console.log(coverPath)
+        mdui.dialog({
+            content: `<img src="${URL_STATIC}/${coverPath}" class="mdui-img-fluid">`
+        })
+    }
+</script>
+
+</body>
+</html>
