@@ -78,7 +78,8 @@
         })
         if (filter.length === 0) {
             mdui.snackbar('NO DATA', {
-                timeout: 1000
+                timeout: 1000,
+                position: 'top'
             })
         }
         setTable(filter, comics)
