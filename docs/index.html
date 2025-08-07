@@ -21,6 +21,7 @@
                     <th id="table-body-total">0 / 0</th>
                     <th>SIZE</th>
                     <th>PICS</th>
+                    <th>OP</th>
                 </tr>
                 </thead>
                 <tbody id="table-body">
@@ -39,7 +40,13 @@
         mdui.$('#table-body-total').text(`${filter.length} / ${all.length}`)
         mdui.$('#table-body').empty()
         // filter.forEach(m => mdui.$('#table-body').append(`<!--<tr onclick='showCover("${m.cover}")'><td>${m.name}</td><td>${m.size}</td><td>${m.pics}</td></tr>-->`))
-        filter.forEach(m => mdui.$('#table-body').append(`<tr><td>${m.name}</td><td>${m.size}</td><td>${m.pics}</td></tr>`))
+        filter.forEach(m => mdui.$('#table-body').append(
+            `<tr>
+                <td>${m.name}</td>
+                <td>${m.size}</td>
+                <td>${m.pics}</td>
+                <td><button class="mdui-btn mdui-btn-icon" onclick="copy('${m.name}')"><i class="mdui-icon material-icons">&#xe14d;</i></button></td>
+            </tr>`))
     }
 
     let comics = []
@@ -90,6 +97,23 @@
         mdui.dialog({
             content: `<img src="${URL_STATIC}/${coverPath}" class="mdui-img-fluid">`
         })
+    }
+
+    function copy(str) {
+        navigator.clipboard.writeText(str)
+            .then(() => {
+                mdui.snackbar('复制成功', {
+                    timeout: 1000,
+                    position: 'top'
+                })
+            })
+            .catch(err => {
+                    mdui.snackbar(`复制失败: ${err}`, {
+                        timeout: 1000,
+                        position: 'top'
+                    })
+                }
+            )
     }
 </script>
 
