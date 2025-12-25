@@ -6,6 +6,8 @@
     <title>AcgSearch</title>
     <link rel="stylesheet" href="mdui-v1.0.2/css/mdui.min.css">
     <script src="mdui-v1.0.2/js/mdui.min.js"></script>
+    <script src="util.js"></script>
+    <script src="comic.js"></script>
 </head>
 <body>
 <div class="mdui-container">
@@ -49,17 +51,19 @@
             </tr>`))
     }
 
-    let comics = []
+    // let comics = []
     const URL_STATIC = 'https://raw.githubusercontent.com/prprhub/prprhub.github.io/main/static';
-    mdui.$.ajax({
-        method: 'GET',
-        url: `${URL_STATIC}/comic.json`,
-        dataType: 'json',
-        async: false,
-        success: function (data) {
-            comics = data
-        }
-    });
+
+    // 更换为引入 comic.js
+    // mdui.$.ajax({
+    //     method: 'GET',
+    //     url: `${URL_STATIC}/comic.json`,
+    //     dataType: 'json',
+    //     async: false,
+    //     success: function (data) {
+    //         comics = data
+    //     }
+    // });
     setTable(comics, comics)
 
     let keywordInput = mdui.$('#keyword-input')
