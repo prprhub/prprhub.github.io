@@ -245,16 +245,6 @@
   }
   .state svg { width: 34px; height: 34px; opacity: .5; }
   .state .big { font-size: 16px; color: var(--text-dim); }
-  .state kbd {
-    display: inline-block;
-    padding: 1px 6px;
-    font: inherit; font-size: 12px;
-    border: 1px solid var(--border-strong);
-    border-bottom-width: 2px;
-    border-radius: 5px;
-    background: var(--bg-elev);
-    color: var(--text-dim);
-  }
 
   .grid {
     display: grid;
@@ -483,6 +473,7 @@
         </svg>
         <input id="q" type="search" placeholder="输入关键词检索漫画…" autocomplete="off"
                autocapitalize="off" spellcheck="false" enterkeyhint="search"
+               title="多个关键词用空格分隔；按 / 或 Ctrl+K 聚焦搜索框"
                aria-label="检索漫画名称">
         <button class="clear-btn" id="clearBtn" type="button" aria-label="清除搜索" hidden>×</button>
       </div>
@@ -505,25 +496,14 @@
 </header>
 
 <main class="content">
-  <!-- 未输入关键词：内容区不放列表内容 -->
-  <section class="state" id="emptyState">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
-         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <circle cx="11" cy="11" r="7"/>
-      <path d="M20 20l-3.6-3.6"/>
-    </svg>
-    <div class="big">输入关键词开始检索</div>
-    <div>支持多关键词，空格分隔；按 <kbd>/</kbd> 或 <kbd>Ctrl</kbd>+<kbd>K</kbd> 快速聚焦</div>
-  </section>
-
   <section class="state" id="noResult" hidden>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <circle cx="11" cy="11" r="7"/>
       <path d="M8.5 8.5l5 5M13.5 8.5l-5 5M20 20l-3.6-3.6"/>
     </svg>
-    <div class="big">未找到匹配的漫画</div>
-    <div>试试更短的关键词，或检查输入是否有误</div>
+    <div class="big" id="noResultTitle">未找到匹配的漫画</div>
+    <div id="noResultDesc">试试更短的关键词，或检查输入是否有误</div>
   </section>
 
   <section class="grid" id="results" hidden aria-label="检索结果"></section>
@@ -570,8 +550,9 @@
     statCount: document.getElementById('statCount'),
     statSize: document.getElementById('statSize'),
     resultInfo: document.getElementById('resultInfo'),
-    emptyState: document.getElementById('emptyState'),
     noResult: document.getElementById('noResult'),
+    noResultTitle: document.getElementById('noResultTitle'),
+    noResultDesc: document.getElementById('noResultDesc'),
     results: document.getElementById('results'),
     pager: document.getElementById('pager'),
     pageInfo: document.getElementById('pageInfo'),
@@ -581,10 +562,9 @@
   };
 
   if (!DATA) {
-    els.emptyState.hidden = true;
     els.noResult.hidden = false;
-    els.noResult.querySelector('.big').textContent = '未能加载数据（comic.js）';
-    els.noResult.querySelector('div:last-child').textContent =
+    els.noResultTitle.textContent = '未能加载数据（comic.js）';
+    els.noResultDesc.textContent =
       '请确认 index.html 与 comic.js 位于同一目录，并通过 http 服务或直接双击打开。';
     return;
   }
@@ -840,37 +820,30 @@
 
   function apply(resetPage) {
     var raw = els.q.value;
-    var tokens = tokenize(raw);
+    var tokens = tokenize(raw);            // 无关键词时为空数组 → 匹配全部（走缓存分组）
     els.clearBtn.hidden = raw.length === 0;
 
-    /* 没有搜索输入 → 内容区不展示任何列表内容 */
-    if (!tokens.length) {
-      state.tokens = [];
-      state.cached = null;
-      state.cacheKey = '';
-      resetResults();
-      els.noResult.hidden = true;
-      els.emptyState.hidden = false;
-      els.resultInfo.textContent = '';
-      return;
-    }
-
-    els.emptyState.hidden = true;
     state.tokens = tokens;
     if (resetPage !== false) state.page = 1;
 
     var res = results();
+    var isSearch = tokens.length > 0;
+    var head = isSearch ? '匹配 ' : '全部 ';
 
     if (!res.list.length) {
       resetResults();
       els.noResult.hidden = false;
-      els.resultInfo.innerHTML = '匹配 <b class="accent">0</b> 部 · 合计 <b>0 B</b>';
+      els.noResultTitle.textContent = isSearch ? '未找到匹配的漫画' : '暂无数据';
+      els.noResultDesc.textContent = isSearch
+        ? '试试更短的关键词，或检查输入是否有误'
+        : 'comic.js 中的 comics 数组为空。';
+      els.resultInfo.innerHTML = head + '<b class="accent">0</b> 部 · 合计 <b>0 B</b>';
       return;
     }
 
     els.noResult.hidden = true;
 
-    els.resultInfo.innerHTML = '匹配 <b class="accent">' + formatNum(res.list.length) + '</b> 部 · 合计 <b>' +
+    els.resultInfo.innerHTML = head + '<b class="accent">' + formatNum(res.list.length) + '</b> 部 · 合计 <b>' +
       formatSize(res.bytes) + '</b>' + (res.pics ? ' · 共 <b>' + formatNum(res.pics) + '</b> 页' : '');
 
     renderPage(res.list);
@@ -989,10 +962,7 @@
 
   /* ============ 8. 初始化 ============ */
   els.pageSizeSelect.value = String(defaultPageSize());
-  els.emptyState.hidden = false;
-  els.results.hidden = true;
-  els.pager.hidden = true;
-  els.resultInfo.textContent = '';
+  apply(true);   // 默认展示全部内容（按上传时间倒序，分页展示）
   /* 桌面端自动聚焦输入框（移动端不主动聚焦，避免弹出键盘） */
   if (window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
     els.q.focus({ preventScroll: true });
