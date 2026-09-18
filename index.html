@@ -483,8 +483,8 @@
         <option value="time:asc">上传时间 最早优先</option>
         <option value="size:desc">大小 从大到小</option>
         <option value="size:asc">大小 从小到大</option>
-        <option value="pics:desc">页数 从多到少</option>
-        <option value="pics:asc">页数 从少到多</option>
+        <option value="pics:desc">图片数 从多到少</option>
+        <option value="pics:asc">图片数 从少到多</option>
         <option value="name:asc">名称 A → Z</option>
         <option value="name:desc">名称 Z → A</option>
         <option value="default">数据原始顺序</option>
@@ -622,7 +622,8 @@
       pics: isFinite(pics) ? pics : null,
       uptime: uptime,
       time: Date.parse(uptime.replace(/-/g, '/')) || 0,
-      haystack: norm(name) + ' \u0001 ' + norm(uptime)
+      /* 检索范围仅限 name 字段（归一化后比较）；size / pics / uptime 只用于展示与排序 */
+      nameKey: norm(name)
     };
   });
 
@@ -648,9 +649,10 @@
     return t;
   }
 
+  /* 只匹配 name 字段；多关键词之间为 AND，关键词内部为子串匹配 */
   function matchAll(item, tokens) {
     for (var i = 0; i < tokens.length; i++) {
-      if (item.haystack.indexOf(tokens[i]) === -1) return false;
+      if (item.nameKey.indexOf(tokens[i]) === -1) return false;
     }
     return true;
   }
@@ -717,12 +719,12 @@
   }
 
   function renderCard(item, tokens) {
-    /* pics 缺失或为 0（如 .rar 包）都视为页数未知 */
+    /* pics 缺失或为 0（如 .rar 包）都视为张数未知；单位用“张”，避免与分页的“页”混淆 */
     var picsHtml = (item.pics == null || item.pics <= 0)
-      ? '<span class="tag">页数未知</span>'
+      ? '<span class="tag">张数未知</span>'
       : '<span class="tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
         'stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18v14H3z"/><path d="M3 16l5-4 4 3 3-3 6 5"/></svg>' +
-        formatNum(item.pics) + ' 页</span>';
+        formatNum(item.pics) + ' 张</span>';
 
     var timeHtml = item.uptime
       ? '<span class="tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
@@ -844,7 +846,7 @@
     els.noResult.hidden = true;
 
     els.resultInfo.innerHTML = head + '<b class="accent">' + formatNum(res.list.length) + '</b> 部 · 合计 <b>' +
-      formatSize(res.bytes) + '</b>' + (res.pics ? ' · 共 <b>' + formatNum(res.pics) + '</b> 页' : '');
+      formatSize(res.bytes) + '</b>' + (res.pics ? ' · 共 <b>' + formatNum(res.pics) + '</b> 张' : '');
 
     renderPage(res.list);
   }
