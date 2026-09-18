@@ -1,127 +1,1003 @@
 <!DOCTYPE html>
-<html lang="zh-cn">
+<html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0,maximum-scale=5.0">
-    <title>AcgSearch</title>
-    <link rel="stylesheet" href="mdui-v1.0.2/css/mdui.min.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#4f46e5">
+<title>漫画检索</title>
+<style>
+  :root {
+    --bg: #f5f6f8;
+    --bg-elev: #ffffff;
+    --text: #1c1f26;
+    --text-dim: #666e7d;
+    --text-faint: #98a1b0;
+    --border: #e3e6ec;
+    --border-strong: #cfd4dd;
+    --accent: #4f46e5;
+    --accent-soft: #eef0ff;
+    --mark-bg: #ffe9a8;
+    --mark-text: #4a3a00;
+    --shadow: 0 1px 2px rgba(16, 22, 40, .06);
+    --shadow-hover: 0 6px 20px rgba(16, 22, 40, .10);
+    --radius: 14px;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0e1014;
+      --bg-elev: #171a21;
+      --text: #e8ebf2;
+      --text-dim: #9aa3b2;
+      --text-faint: #6b7382;
+      --border: #262b35;
+      --border-strong: #333a47;
+      --accent: #8b8cf7;
+      --accent-soft: #1e2140;
+      --mark-bg: #6b5a12;
+      --mark-text: #ffefb0;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .4);
+      --shadow-hover: 0 6px 20px rgba(0, 0, 0, .5);
+      color-scheme: dark;
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  /* 必须放在组件 display 规则之前生效：hidden 属性优先 */
+  [hidden] { display: none !important; }
+
+  html, body { height: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+          "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", Roboto, sans-serif;
+    -webkit-text-size-adjust: 100%;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---------- 顶部栏 ---------- */
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: var(--bg);
+    backdrop-filter: saturate(180%) blur(12px);
+    -webkit-backdrop-filter: saturate(180%) blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+  @supports (background: color-mix(in srgb, red 50%, transparent)) {
+    .topbar { background: color-mix(in srgb, var(--bg) 88%, transparent); }
+  }
+
+  .topbar-inner {
+    max-width: 1220px;
+    margin: 0 auto;
+    padding: 14px 18px 12px;
+  }
+
+  .title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: 19px;
+    font-weight: 700;
+    letter-spacing: .3px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+  }
+  h1 .logo {
+    width: 26px; height: 26px;
+    display: grid; place-items: center;
+    border-radius: 8px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    flex: none;
+  }
+  h1 .logo svg { width: 16px; height: 16px; }
+
+  .stats { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .stat {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    padding: 5px 11px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--bg-elev);
+    box-shadow: var(--shadow);
+    white-space: nowrap;
+  }
+  .stat-label { font-size: 12px; color: var(--text-dim); }
+  .stat-value { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .stat-value.accent { color: var(--accent); }
+
+  /* ---------- 搜索区 ---------- */
+  .search-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 12px;
+    align-items: center;
+  }
+
+  .search-box {
+    position: relative;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .search-box .icon {
+    position: absolute;
+    left: 13px; top: 50%;
+    transform: translateY(-50%);
+    width: 17px; height: 17px;
+    color: var(--text-faint);
+    pointer-events: none;
+  }
+  #q {
+    width: 100%;
+    padding: 11px 40px 11px 39px;
+    font: inherit;
+    font-size: 15px;
+    color: var(--text);
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 11px;
+    outline: none;
+    box-shadow: var(--shadow);
+    transition: border-color .15s, box-shadow .15s;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  #q::placeholder { color: var(--text-faint); }
+  #q:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, .22);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+  }
+  #q::-webkit-search-cancel-button { display: none; }
+
+  .clear-btn {
+    position: absolute;
+    right: 7px; top: 50%;
+    transform: translateY(-50%);
+    width: 26px; height: 26px;
+    display: grid; place-items: center;
+    border: 0; border-radius: 50%;
+    background: transparent;
+    color: var(--text-faint);
+    font-size: 17px; line-height: 1;
+    cursor: pointer;
+    transition: background .15s, color .15s;
+  }
+  .clear-btn:hover { background: var(--border); color: var(--text); }
+
+  .sort-select,
+  .page-size-select {
+    flex: none;
+    padding: 11px 32px 11px 12px;
+    font: inherit;
+    font-size: 14px;
+    color: var(--text);
+    background-color: var(--bg-elev);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath fill='%2398a1b0' d='M6 8.5 1.8 4.2l1-1L6 6.5l3.2-3.3 1 1z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 11px center;
+    background-size: 12px;
+    border: 1px solid var(--border-strong);
+    border-radius: 11px;
+    outline: none;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .sort-select:focus,
+  .page-size-select:focus { border-color: var(--accent); }
+
+  /* 分页区的“每页条数”：紧凑版下拉 */
+  .page-size-select {
+    padding: 6px 26px 6px 9px;
+    font-size: 13px;
+    border-radius: 9px;
+    background-position: right 8px center;
+  }
+
+  .result-info {
+    display: block;
+    min-height: 0;
+    margin-top: 9px;
+    font-size: 13px;
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+  }
+  .result-info:empty { display: none; }
+  .result-info b { color: var(--text); font-weight: 700; }
+  .result-info .accent { color: var(--accent); }
+
+  /* ---------- 内容区 ---------- */
+  .content {
+    max-width: 1220px;
+    margin: 0 auto;
+    padding: 18px;
+    padding-bottom: max(28px, env(safe-area-inset-bottom));
+  }
+
+  .state {
+    padding: 64px 16px;
+    text-align: center;
+    color: var(--text-faint);
+    font-size: 14px;
+    display: grid;
+    gap: 12px;
+    justify-items: center;
+  }
+  .state svg { width: 34px; height: 34px; opacity: .5; }
+  .state .big { font-size: 16px; color: var(--text-dim); }
+  .state kbd {
+    display: inline-block;
+    padding: 1px 6px;
+    font: inherit; font-size: 12px;
+    border: 1px solid var(--border-strong);
+    border-bottom-width: 2px;
+    border-radius: 5px;
+    background: var(--bg-elev);
+    color: var(--text-dim);
+  }
+
+  .grid {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+    align-items: start;
+  }
+
+  .card {
+    position: relative;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 15px 13px;
+    box-shadow: var(--shadow);
+    transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+  }
+  .card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-hover);
+    border-color: var(--border-strong);
+  }
+
+  .card-title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.45;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+
+  mark {
+    background: var(--mark-bg);
+    color: var(--mark-text);
+    border-radius: 3px;
+    padding: 0 1px;
+  }
+
+  .card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-top: 11px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--border);
+  }
+
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 9px;
+    font-size: 12px;
+    color: var(--text-dim);
+    background: var(--border);
+    background: color-mix(in srgb, var(--border) 55%, transparent);
+    border-radius: 999px;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .tag-size {
+    color: var(--accent);
+    background: var(--accent-soft);
+    font-weight: 700;
+  }
+  .tag svg { width: 12px; height: 12px; opacity: .8; }
+
+  .copy-btn {
+    margin-left: auto;
+    padding: 4px 10px;
+    font: inherit;
+    font-size: 12px;
+    color: var(--text-dim);
+    background: transparent;
+    border: 1px solid var(--border-strong);
+    border-radius: 999px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background .15s, color .15s, border-color .15s;
+  }
+  .copy-btn:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+  .copy-btn.done { color: #128a4b; border-color: #128a4b; background: rgba(18, 138, 75, .1); }
+
+  /* ---------- 分页 ---------- */
+  .pager {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 10px 16px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+
+  .pager-info {
+    font-size: 13px;
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+  }
+  .pager-info b { color: var(--text); }
+
+  .pager-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+  }
+
+  .page-btn {
+    min-width: 34px;
+    height: 34px;
+    padding: 0 10px;
+    font: inherit;
+    font-size: 13.5px;
+    color: var(--text);
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 9px;
+    cursor: pointer;
+    font-variant-numeric: tabular-nums;
+    transition: background .15s, color .15s, border-color .15s;
+  }
+  .page-btn:hover:not(:disabled):not([aria-current]) {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .page-btn:disabled { opacity: .4; cursor: not-allowed; }
+  .page-btn[aria-current="page"] {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--bg-elev);
+    font-weight: 700;
+    cursor: default;
+  }
+  .page-gap { padding: 0 3px; color: var(--text-faint); user-select: none; }
+
+  .page-size {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  /* ---------- 提示条 ---------- */
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: 24px;
+    transform: translate(-50%, 16px);
+    padding: 9px 18px;
+    font-size: 13.5px;
+    color: #fff;
+    background: rgba(24, 28, 38, .93);
+    border-radius: 999px;
+    box-shadow: 0 8px 26px rgba(0, 0, 0, .28);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s, transform .2s;
+    z-index: 60;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  /* ---------- 响应式 ---------- */
+  @media (max-width: 720px) {
+    .topbar-inner { padding: 11px 13px 10px; }
+    .content { padding: 13px; }
+    .grid { grid-template-columns: 1fr; gap: 10px; }
+    h1 { font-size: 17px; }
+    #q { padding: 10px 38px 10px 37px; }
+    .search-row { flex-wrap: wrap; }
+    .search-box { flex: 1 1 100%; }
+    .sort-select { flex: 1 1 auto; width: 100%; }
+    .stat { padding: 4px 9px; }
+    .state { padding: 44px 14px; }
+    .pager { gap: 8px 12px; margin-top: 16px; }
+    .page-btn { min-width: 32px; height: 32px; padding: 0 8px; font-size: 13px; }
+  }
+
+  @media (max-width: 400px) {
+    .card { padding: 12px 12px 11px; }
+    .card-title { font-size: 14.5px; }
+    .sort-select { font-size: 13px; }
+  }
+</style>
 </head>
 <body>
-<div class="mdui-container">
 
-    <div class="mdui-m-t-5 mdui-m-b-5">
-        <div class="mdui-textfield">
-            <input id="keyword-input" class="mdui-textfield-input" type="text" placeholder="Keyword"/>
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="title-row">
+      <h1>
+        <span class="logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+               stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 4.5A1.5 1.5 0 0 1 5.5 3H10v18H5.5A1.5 1.5 0 0 1 4 19.5z"/>
+            <path d="M14 3h4.5A1.5 1.5 0 0 1 20 4.5v15a1.5 1.5 0 0 1-1.5 1.5H14z"/>
+          </svg>
+        </span>
+        漫画检索
+      </h1>
+
+      <div class="stats" role="group" aria-label="全部数据统计">
+        <div class="stat">
+          <span class="stat-label">总数</span>
+          <span class="stat-value accent" id="statCount">—</span>
         </div>
-        <div class="mdui-table-fluid">
-            <table class="mdui-table mdui-table-hoverable">
-                <thead>
-                <tr>
-                    <th id="table-body-total">0 / 0</th>
-                    <th>SIZE</th>
-                    <th>PICS</th>
-                    <th>UPTIME</th>
-                    <th>OP</th>
-                </tr>
-                </thead>
-                <tbody id="table-body">
-                <!--            <tr>-->
-                <!--                <td>1</td>-->
-                <!--            </tr>-->
-                </tbody>
-            </table>
+        <div class="stat">
+          <span class="stat-label">总大小</span>
+          <span class="stat-value accent" id="statSize">—</span>
         </div>
+      </div>
     </div>
 
-</div>
+    <div class="search-row">
+      <div class="search-box">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="7"/>
+          <path d="M20 20l-3.6-3.6"/>
+        </svg>
+        <input id="q" type="search" placeholder="输入关键词检索漫画…" autocomplete="off"
+               autocapitalize="off" spellcheck="false" enterkeyhint="search"
+               aria-label="检索漫画名称">
+        <button class="clear-btn" id="clearBtn" type="button" aria-label="清除搜索" hidden>×</button>
+      </div>
 
-<script src="mdui-v1.0.2/js/mdui.min.js"></script>
-<script src="util.js"></script>
+      <select class="sort-select" id="sortSelect" aria-label="排序方式">
+        <option value="time:desc" selected>上传时间 最新优先</option>
+        <option value="time:asc">上传时间 最早优先</option>
+        <option value="size:desc">大小 从大到小</option>
+        <option value="size:asc">大小 从小到大</option>
+        <option value="pics:desc">页数 从多到少</option>
+        <option value="pics:asc">页数 从少到多</option>
+        <option value="name:asc">名称 A → Z</option>
+        <option value="name:desc">名称 Z → A</option>
+        <option value="default">数据原始顺序</option>
+      </select>
+    </div>
+
+    <span class="result-info" id="resultInfo" role="status" aria-live="polite"></span>
+  </div>
+</header>
+
+<main class="content">
+  <!-- 未输入关键词：内容区不放列表内容 -->
+  <section class="state" id="emptyState">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="11" cy="11" r="7"/>
+      <path d="M20 20l-3.6-3.6"/>
+    </svg>
+    <div class="big">输入关键词开始检索</div>
+    <div>支持多关键词，空格分隔；按 <kbd>/</kbd> 或 <kbd>Ctrl</kbd>+<kbd>K</kbd> 快速聚焦</div>
+  </section>
+
+  <section class="state" id="noResult" hidden>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="11" cy="11" r="7"/>
+      <path d="M8.5 8.5l5 5M13.5 8.5l-5 5M20 20l-3.6-3.6"/>
+    </svg>
+    <div class="big">未找到匹配的漫画</div>
+    <div>试试更短的关键词，或检查输入是否有误</div>
+  </section>
+
+  <section class="grid" id="results" hidden aria-label="检索结果"></section>
+
+  <nav class="pager" id="pager" hidden aria-label="结果分页">
+    <div class="pager-info" id="pageInfo"></div>
+    <div class="pager-controls" id="pageButtons"></div>
+    <label class="page-size">每页
+      <select class="page-size-select" id="pageSizeSelect" aria-label="每页显示条数">
+        <option value="24">24</option>
+        <option value="48">48</option>
+        <option value="96">96</option>
+        <option value="192">192</option>
+      </select> 条
+    </label>
+  </nav>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<!-- 数据来源：同目录下的 comic.js（定义全局 comics 数组） -->
 <script src="comic.js"></script>
-<script type="text/javascript">
-    function setTable(filter, all) {
-        mdui.$('#table-body-total').text(`${filter.length} / ${all.length}`)
-        mdui.$('#table-body').empty()
-        // filter.forEach(m => mdui.$('#table-body').append(`<!--<tr onclick='showCover("${m.cover}")'><td>${m.name}</td><td>${m.size}</td><td>${m.pics}</td></tr>-->`))
-        filter.forEach(m => mdui.$('#table-body').append(
-            `<tr>
-                <td>${m.name}</td>
-                <td>${m.size}</td>
-                <td>${m.pics}</td>
-                <td>${m.uptime}</td>
-                <td><button class="mdui-btn mdui-btn-icon" onclick="copy('${m.name}')"><i class="mdui-icon material-icons">&#xe14d;</i></button></td>
-            </tr>`))
+<script>
+(function () {
+  'use strict';
+
+  /* ============ 1. 读取数据 ============ */
+  var DATA = (function resolveData() {
+    var candidate = null;
+    try {
+      if (typeof comics !== 'undefined') candidate = comics;
+    } catch (e) { /* TDZ / 未定义 */ }
+    if (!candidate && window.comics) candidate = window.comics;
+
+    if (Array.isArray(candidate)) return candidate.slice();
+    if (candidate && Array.isArray(candidate.comics)) return candidate.comics.slice();
+    return null;
+  })();
+
+  var els = {
+    q: document.getElementById('q'),
+    clearBtn: document.getElementById('clearBtn'),
+    sortSelect: document.getElementById('sortSelect'),
+    statCount: document.getElementById('statCount'),
+    statSize: document.getElementById('statSize'),
+    resultInfo: document.getElementById('resultInfo'),
+    emptyState: document.getElementById('emptyState'),
+    noResult: document.getElementById('noResult'),
+    results: document.getElementById('results'),
+    pager: document.getElementById('pager'),
+    pageInfo: document.getElementById('pageInfo'),
+    pageButtons: document.getElementById('pageButtons'),
+    pageSizeSelect: document.getElementById('pageSizeSelect'),
+    toast: document.getElementById('toast')
+  };
+
+  if (!DATA) {
+    els.emptyState.hidden = true;
+    els.noResult.hidden = false;
+    els.noResult.querySelector('.big').textContent = '未能加载数据（comic.js）';
+    els.noResult.querySelector('div:last-child').textContent =
+      '请确认 index.html 与 comic.js 位于同一目录，并通过 http 服务或直接双击打开。';
+    return;
+  }
+
+  /* ============ 2. 工具函数 ============ */
+  var UNIT = { b: 1, kb: 1024, mb: 1048576, gb: 1073741824, tb: 1099511627776 };
+
+  function parseSize(value) {
+    if (typeof value === 'number' && isFinite(value)) return value;
+    var m = String(value == null ? '' : value).trim().match(/^([\d.]+)\s*([kmgt]?i?b)$/i);
+    if (!m) return 0;
+    var unit = m[2].toLowerCase().replace('i', '');
+    var factor = UNIT[unit] || 0;
+    return factor ? parseFloat(m[1]) * factor : 0;
+  }
+
+  function formatSize(bytes) {
+    if (!bytes || bytes < 0) return '0 B';
+    var units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    var i = 0, n = bytes;
+    while (n >= 1024 && i < units.length - 1) { n /= 1024; i++; }
+    return (i === 0 ? String(Math.round(n)) : n.toFixed(2)) + ' ' + units[i];
+  }
+
+  function formatNum(n) {
+    var v = Number(n);
+    if (!isFinite(v)) return '—';
+    return v.toLocaleString('zh-CN');
+  }
+
+  function norm(s) {
+    return String(s == null ? '' : s).normalize('NFKC').toLowerCase();
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function escapeRegExp(s) {
+    return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  /* ============ 3. 数据预处理 ============ */
+  var ITEMS = DATA.map(function (raw, index) {
+    var name = String(raw && raw.name != null ? raw.name : '(未命名)');
+    var pics = Number(raw && raw.pics);
+    var uptime = String(raw && raw.uptime != null ? raw.uptime : '');
+    return {
+      index: index,
+      name: name,
+      sizeText: String(raw && raw.size != null ? raw.size : '—'),
+      sizeBytes: parseSize(raw && raw.size),
+      pics: isFinite(pics) ? pics : null,
+      uptime: uptime,
+      time: Date.parse(uptime.replace(/-/g, '/')) || 0,
+      haystack: norm(name) + ' \u0001 ' + norm(uptime)
+    };
+  });
+
+  /* 顶部：全部数据的总数与总大小 */
+  els.statCount.textContent = formatNum(ITEMS.length) + ' 部';
+  els.statSize.textContent = formatSize(ITEMS.reduce(function (sum, it) {
+    return sum + it.sizeBytes;
+  }, 0));
+
+  /* ============ 4. 检索与排序 ============ */
+  /* 大数据量策略：分页渲染 —— 每页只创建固定数量的 DOM 节点，渲染耗时与结果总量无关，
+     也不会因结果上万而卡顿或占用大量内存；全量匹配结果按「关键词 + 排序」指纹缓存，
+     翻页、改每页条数时零重复计算（不重新过滤、不重新排序）。 */
+  var state = {
+    tokens: [],     // 当前关键词分词
+    cacheKey: '',   // 缓存指纹（分词 + 排序）
+    cached: null,   // { list, bytes, pics }
+    page: 1
+  };
+
+  function tokenize(query) {
+    var t = norm(query).split(/\s+/).filter(Boolean);
+    return t;
+  }
+
+  function matchAll(item, tokens) {
+    for (var i = 0; i < tokens.length; i++) {
+      if (item.haystack.indexOf(tokens[i]) === -1) return false;
+    }
+    return true;
+  }
+
+  var COMPARATORS = {
+    'name:asc':  function (a, b) { return a.name.localeCompare(b.name, 'zh-Hans-CN', { numeric: true }); },
+    'name:desc': function (a, b) { return b.name.localeCompare(a.name, 'zh-Hans-CN', { numeric: true }); },
+    'size:desc': function (a, b) { return b.sizeBytes - a.sizeBytes; },
+    'size:asc':  function (a, b) { return a.sizeBytes - b.sizeBytes; },
+    'pics:desc': function (a, b) { return (b.pics || 0) - (a.pics || 0); },
+    'pics:asc':  function (a, b) { return (a.pics || 0) - (b.pics || 0); },
+    'time:desc': function (a, b) { return b.time - a.time; },
+    'time:asc':  function (a, b) { return a.time - b.time; }
+  };
+
+  /* 过滤 + 排序 + 汇总，仅在关键词或排序变化时执行一次 */
+  function results() {
+    var key = state.tokens.join('\u0001') + '|' + els.sortSelect.value;
+    if (key === state.cacheKey && state.cached) return state.cached;
+
+    var list = ITEMS.filter(function (it) { return matchAll(it, state.tokens); });
+
+    var cmp = COMPARATORS[els.sortSelect.value];
+    if (cmp) list.sort(cmp);
+
+    var bytes = 0, pics = 0;
+    for (var i = 0; i < list.length; i++) {
+      bytes += list[i].sizeBytes;
+      pics += list[i].pics || 0;
     }
 
-    // let comics = []
-    const URL_STATIC = 'https://raw.githubusercontent.com/prprhub/prprhub.github.io/main/static';
+    state.cacheKey = key;
+    state.cached = { list: list, bytes: bytes, pics: pics };
+    return state.cached;
+  }
 
-    // 更换为引入 comic.js
-    // mdui.$.ajax({
-    //     method: 'GET',
-    //     url: `${URL_STATIC}/comic.json`,
-    //     dataType: 'json',
-    //     async: false,
-    //     success: function (data) {
-    //         comics = data
-    //     }
-    // });
-    setTable(comics, comics)
+  function pageSize() {
+    var v = parseInt(els.pageSizeSelect.value, 10);
+    return isFinite(v) && v > 0 ? v : 48;
+  }
 
-    let keywordInput = mdui.$('#keyword-input')
-    keywordInput.on({
-        // 'input': function (e) {
-        //     console.log(e)
-        // },
-        'keypress': e => {
-            if ('Enter' === e.key) {
-                search(keywordInput.val().trim())
-            }
-        }
-    })
+  /* 默认每页条数：大屏给多一些，小屏少一些（仅为滚动体验，不涉及性能） */
+  function defaultPageSize() {
+    return (window.innerWidth || 1024) >= 900 ? 48 : 24;
+  }
 
-    function search(keyword) {
-        if (comics === null || comics.length === 0) {
-            return
-        }
-        const filter = mdui.$.map(comics, (m, index) => {
-            if (m.name.toLowerCase().includes(keyword.toLowerCase())) {
-                return m
-            }
-        })
-        if (filter.length === 0) {
-            mdui.snackbar('NO DATA', {
-                timeout: 1000,
-                position: 'top'
-            })
-        }
-        setTable(filter, comics)
+  function totalPages(count) {
+    return Math.max(1, Math.ceil(count / pageSize()));
+  }
+
+  /* ============ 5. 渲染 ============ */
+  function highlight(name, tokens) {
+    var html = escapeHtml(name);
+    if (!tokens.length) return html;
+    var parts = tokens
+      .map(function (t) { return escapeRegExp(escapeHtml(t)); })
+      .filter(function (t) { return t.length > 0; });
+    if (!parts.length) return html;
+    try {
+      return html.replace(new RegExp('(' + parts.join('|') + ')', 'gi'), '<mark>$1</mark>');
+    } catch (e) {
+      return html;
+    }
+  }
+
+  function renderCard(item, tokens) {
+    /* pics 缺失或为 0（如 .rar 包）都视为页数未知 */
+    var picsHtml = (item.pics == null || item.pics <= 0)
+      ? '<span class="tag">页数未知</span>'
+      : '<span class="tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+        'stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18v14H3z"/><path d="M3 16l5-4 4 3 3-3 6 5"/></svg>' +
+        formatNum(item.pics) + ' 页</span>';
+
+    var timeHtml = item.uptime
+      ? '<span class="tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+        'stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>' +
+        escapeHtml(item.uptime) + '</span>'
+      : '';
+
+    return '<article class="card" data-index="' + item.index + '">' +
+      '<h2 class="card-title">' + highlight(item.name, tokens) + '</h2>' +
+      '<div class="card-meta">' +
+        '<span class="tag tag-size">' + escapeHtml(item.sizeText) + '</span>' +
+        picsHtml + timeHtml +
+        '<button class="copy-btn" type="button" data-copy="1">复制名称</button>' +
+      '</div>' +
+    '</article>';
+  }
+
+  /* 页码窗口：首尾页 + 当前页 ±1，中间用省略号收拢 */
+  function pageNumbers(current, total) {
+    var out = [];
+    function push(v) { if (out[out.length - 1] !== v) out.push(v); }
+    for (var i = 1; i <= total; i++) {
+      if (i === 1 || i === total || Math.abs(i - current) <= 1) push(i);
+      else push('gap');
+    }
+    return out;
+  }
+
+  function renderPager(current, total, size, count) {
+    var html = '<button class="page-btn" type="button" data-page="' + (current - 1) + '"' +
+      (current <= 1 ? ' disabled' : '') + '>上一页</button>';
+
+    var nums = pageNumbers(current, total);
+    for (var i = 0; i < nums.length; i++) {
+      if (nums[i] === 'gap') { html += '<span class="page-gap">…</span>'; continue; }
+      html += '<button class="page-btn" type="button" data-page="' + nums[i] + '"' +
+        (nums[i] === current ? ' aria-current="page"' : '') + '>' + nums[i] + '</button>';
     }
 
-    function showCover(coverPath) {
-        console.log(coverPath)
-        mdui.dialog({
-            content: `<img src="${URL_STATIC}/${coverPath}" class="mdui-img-fluid">`
-        })
+    html += '<button class="page-btn" type="button" data-page="' + (current + 1) + '"' +
+      (current >= total ? ' disabled' : '') + '>下一页</button>';
+    els.pageButtons.innerHTML = html;
+
+    var from = (current - 1) * size + 1;
+    var to = Math.min(count, current * size);
+    els.pageInfo.innerHTML = '第 <b>' + current + '</b> / ' + total + ' 页 · 显示 <b>' +
+      formatNum(from) + '–' + formatNum(to) + '</b> 条（共 <b>' + formatNum(count) + '</b> 条）';
+  }
+
+  /* 只渲染当前页：DOM 节点数恒定，与结果总量无关 */
+  function renderPage(list) {
+    var size = pageSize();
+    var total = totalPages(list.length);
+    if (state.page > total) state.page = total;
+    if (state.page < 1) state.page = 1;
+
+    var start = (state.page - 1) * size;
+    var slice = list.slice(start, start + size);
+
+    var html = '';
+    for (var i = 0; i < slice.length; i++) html += renderCard(slice[i], state.tokens);
+
+    els.results.innerHTML = html;
+    els.results.hidden = false;
+    els.pager.hidden = false;
+    renderPager(state.page, total, size, list.length);
+  }
+
+  function scrollToResults() {
+    if (!window.scrollTo) return;
+    var topbar = document.querySelector('.topbar');
+    var offset = topbar ? topbar.getBoundingClientRect().height + 12 : 12;
+    var y = els.results.getBoundingClientRect().top + (window.pageYOffset || 0) - offset;
+    window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+  }
+
+  function goToPage(n) {
+    if (!state.cached) return;
+    var total = totalPages(state.cached.list.length);
+    var page = Math.min(Math.max(1, n | 0), total);
+    if (page === state.page) return;
+    state.page = page;
+    renderPage(state.cached.list);
+    scrollToResults();
+  }
+
+  /* ============ 6. 主流程 ============ */
+  function resetResults() {
+    els.results.hidden = true;
+    els.results.innerHTML = '';
+    els.pager.hidden = true;
+    els.pageButtons.innerHTML = '';
+    els.pageInfo.textContent = '';
+  }
+
+  function apply(resetPage) {
+    var raw = els.q.value;
+    var tokens = tokenize(raw);
+    els.clearBtn.hidden = raw.length === 0;
+
+    /* 没有搜索输入 → 内容区不展示任何列表内容 */
+    if (!tokens.length) {
+      state.tokens = [];
+      state.cached = null;
+      state.cacheKey = '';
+      resetResults();
+      els.noResult.hidden = true;
+      els.emptyState.hidden = false;
+      els.resultInfo.textContent = '';
+      return;
     }
 
-    function copy(str) {
-        navigator.clipboard.writeText(str)
-            .then(() => {
-                mdui.snackbar('复制成功', {
-                    timeout: 1000,
-                    position: 'top'
-                })
-            })
-            .catch(err => {
-                    mdui.snackbar(`复制失败: ${err}`, {
-                        timeout: 1000,
-                        position: 'top'
-                    })
-                }
-            )
+    els.emptyState.hidden = true;
+    state.tokens = tokens;
+    if (resetPage !== false) state.page = 1;
+
+    var res = results();
+
+    if (!res.list.length) {
+      resetResults();
+      els.noResult.hidden = false;
+      els.resultInfo.innerHTML = '匹配 <b class="accent">0</b> 部 · 合计 <b>0 B</b>';
+      return;
     }
+
+    els.noResult.hidden = true;
+
+    els.resultInfo.innerHTML = '匹配 <b class="accent">' + formatNum(res.list.length) + '</b> 部 · 合计 <b>' +
+      formatSize(res.bytes) + '</b>' + (res.pics ? ' · 共 <b>' + formatNum(res.pics) + '</b> 页' : '');
+
+    renderPage(res.list);
+  }
+
+  /* ============ 7. 事件绑定 ============ */
+  var timer = null;
+  var composing = false;
+  var pageSizeTouched = false;   // 用户是否手动改过每页条数
+
+  function schedule() {
+    if (composing) return;
+    clearTimeout(timer);
+    timer = setTimeout(apply, 120);
+  }
+
+  els.q.addEventListener('input', schedule);
+  els.q.addEventListener('compositionstart', function () { composing = true; });
+  els.q.addEventListener('compositionend', function () { composing = false; schedule(); });
+  els.q.addEventListener('search', schedule);
+
+  els.clearBtn.addEventListener('click', function () {
+    els.q.value = '';
+    els.q.focus();
+    apply();
+  });
+
+  els.sortSelect.addEventListener('change', function () { apply(true); });
+
+  els.pageSizeSelect.addEventListener('change', function () {
+    pageSizeTouched = true;
+    apply(true);          // 每页条数变化 → 回到第 1 页
+  });
+
+  /* 翻页：只重渲染当前页，复用缓存结果 */
+  els.pager.addEventListener('click', function (e) {
+    var btn = e.target && e.target.closest ? e.target.closest('.page-btn') : null;
+    if (!btn || btn.disabled) return;
+    goToPage(Number(btn.getAttribute('data-page')));
+  });
+
+  /* 屏幕尺寸变化时，未手动设置过则跟随默认每页条数 */
+  var resizeTimer = null;
+  window.addEventListener('resize', function () {
+    if (pageSizeTouched) return;
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function () {
+      var next = String(defaultPageSize());
+      if (next === els.pageSizeSelect.value) return;
+      els.pageSizeSelect.value = next;
+      if (state.cached) apply(false);   // 保持当前页码重新分页
+    }, 200);
+  });
+
+  els.q.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+      els.q.value = '';
+      apply();
+    }
+  });
+
+  document.addEventListener('keydown', function (e) {
+    var tag = (e.target && e.target.tagName) || '';
+    var typing = tag === 'INPUT' || tag === 'TEXTAREA' || (e.target && e.target.isContentEditable);
+    if ((e.key === '/' && !typing) || ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k')) {
+      e.preventDefault();
+      els.q.focus();
+      els.q.select();
+    }
+  });
+
+  /* 复制名称 + 轻提示 */
+  var toastTimer = null;
+  function toast(msg) {
+    els.toast.textContent = msg;
+    els.toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { els.toast.classList.remove('show'); }, 1600);
+  }
+
+  function copyText(text, btn) {
+    function done() {
+      if (btn) {
+        btn.classList.add('done');
+        btn.textContent = '已复制';
+        setTimeout(function () { btn.classList.remove('done'); btn.textContent = '复制名称'; }, 1400);
+      }
+      toast('已复制到剪贴板');
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.top = '-1000px';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); done(); } catch (e) { toast('复制失败，请手动选择'); }
+      document.body.removeChild(ta);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, fallback);
+    } else {
+      fallback();
+    }
+  }
+
+  els.results.addEventListener('click', function (e) {
+    var btn = e.target.closest ? e.target.closest('.copy-btn') : null;
+    if (!btn) return;
+    var card = btn.closest('.card');
+    if (!card) return;
+    var item = ITEMS[Number(card.getAttribute('data-index'))];
+    if (item) copyText(item.name, btn);
+  });
+
+  /* ============ 8. 初始化 ============ */
+  els.pageSizeSelect.value = String(defaultPageSize());
+  els.emptyState.hidden = false;
+  els.results.hidden = true;
+  els.pager.hidden = true;
+  els.resultInfo.textContent = '';
+  /* 桌面端自动聚焦输入框（移动端不主动聚焦，避免弹出键盘） */
+  if (window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+    els.q.focus({ preventScroll: true });
+  }
+})();
 </script>
-
 </body>
 </html>
