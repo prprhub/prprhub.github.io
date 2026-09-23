@@ -250,11 +250,11 @@
     display: grid;
     gap: 12px;
     grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
-    align-items: start;
+    align-items: start;   /* 卡片按自身内容高度排布，不强行拉平 */
   }
 
   .card {
-    position: relative;
+    position: relative;   /* 右上角复制按钮的定位参照 */
     background: var(--bg-elev);
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -268,8 +268,11 @@
     border-color: var(--border-strong);
   }
 
+  /* 标题完整显示、不截断（长标题不参与任何等高处理，卡片按内容自然高度排布）。
+     padding-right 给右上角的复制按钮让位 */
   .card-title {
     margin: 0;
+    padding-right: 30px;
     font-size: 15px;
     font-weight: 600;
     line-height: 1.45;
@@ -314,21 +317,350 @@
   }
   .tag svg { width: 12px; height: 12px; opacity: .8; }
 
+  /* 复制按钮：移到卡片右上角、只留图标，不再单独占一行 */
   .copy-btn {
-    margin-left: auto;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 32px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    color: var(--text-faint);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    cursor: pointer;
+    transition: background .15s, color .15s, border-color .15s;
+  }
+  .copy-btn svg { width: 15px; height: 15px; }
+  .copy-btn .i-check { display: none; }
+  .copy-btn:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+  .copy-btn.done { color: #128a4b; border-color: #128a4b; background: rgba(18, 138, 75, .1); }
+  .copy-btn.done .i-copy { display: none; }
+  .copy-btn.done .i-check { display: block; }
+
+  /* ---------- 标签 ---------- */
+  .tagbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 9px;
+  }
+  .tagbar-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex: none;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .tagbar-label svg { width: 13px; height: 13px; opacity: .8; }
+
+  .taglist {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  /* 展开后限高滚动：标签上千时也不会把吸顶栏撑满屏幕 */
+  .taglist.expanded {
+    flex: 1 1 100%;
+    order: 6;
+    max-height: 240px;
+    max-height: min(30vh, 240px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-right: 2px;
+  }
+
+  /* 展开态：第一行放“标签 / 搜索框 / 按钮”，提示与 chips 各自换行到下面 */
+  .tagbar.expanded .tagbar-label { order: 0; }
+  .tagbar.expanded .tag-search { order: 1; flex: 1 1 180px; min-width: 120px; }
+  .tagbar.expanded .tagbar-hint { order: 2; }
+  .tagbar.expanded #tagMoreBtn { order: 3; }
+  .tagbar.expanded #tagClearBtn { order: 4; }
+  .tagbar.expanded .tag-cap-hint { order: 5; flex: 1 1 100%; }
+
+  /* 标签搜索框（宽屏内联 / 窄屏弹窗内共用） */
+  .tag-search {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 5px 11px;
+    font: inherit;
+    font-size: 12.5px;
+    color: var(--text);
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 999px;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .tag-search::placeholder { color: var(--text-faint); }
+  .tag-search:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, .18);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+  }
+  .tag-search::-webkit-search-cancel-button { display: none; }
+
+  .tag-cap-hint { font-size: 12px; color: var(--text-faint); }
+  .tag-empty { font-size: 12.5px; color: var(--text-faint); padding: 2px 0; }
+
+  .tagbar-btn {
+    flex: none;
     padding: 4px 10px;
     font: inherit;
     font-size: 12px;
     color: var(--text-dim);
-    background: transparent;
+    background: var(--bg-elev);
     border: 1px solid var(--border-strong);
     border-radius: 999px;
     cursor: pointer;
     white-space: nowrap;
-    transition: background .15s, color .15s, border-color .15s;
+    transition: color .15s, border-color .15s, background .15s;
   }
-  .copy-btn:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
-  .copy-btn.done { color: #128a4b; border-color: #128a4b; background: rgba(18, 138, 75, .1); }
+  .tagbar-btn:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+  .tagbar-btn.primary { color: #b3261e; border-color: rgba(179, 38, 30, .45); }
+  .tagbar-btn.primary:hover { color: #fff; background: #b3261e; border-color: #b3261e; }
+
+  .tagbar-hint {
+    flex: none;
+    font-size: 12px;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+  }
+  .tagbar-hint:empty { display: none; }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 11px;
+    font: inherit;
+    font-size: 12px;
+    line-height: 1.3;
+    color: var(--text-dim);
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 999px;
+    cursor: pointer;
+    white-space: nowrap;
+    max-width: 100%;                 /* 超长标签不撑破容器 */
+    transition: color .15s, border-color .15s, background .15s;
+  }
+  /* 标签文字过长时省略，计数与 × 始终保持可见 */
+  .chip .lbl {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .chip .x { flex: none; font-size: 13px; line-height: 1; opacity: .9; }
+  .chip.small { padding: 3px 9px; font-size: 11.5px; }
+  .chip:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+  .chip.on {
+    color: var(--bg-elev);
+    background: var(--accent);
+    border-color: var(--accent);
+    font-weight: 600;
+  }
+  .chip.on .cnt { opacity: .8; }
+  .chip .cnt { font-size: 11px; opacity: .55; font-variant-numeric: tabular-nums; }
+
+  /* 卡片上的标签 */
+  .card-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 9px;
+  }
+  .card-tags .chip {
+    padding: 2px 9px;
+    font-size: 11.5px;
+    background: transparent;
+    border-color: var(--border);
+  }
+  /* 必须写在 .card-tags .chip 之后：同优先级下后者胜出，否则选中态背景会被覆盖成透明（文字与底色同色 → 空白标签） */
+  .card-tags .chip.on {
+    color: var(--bg-elev);
+    background: var(--accent);
+    border-color: var(--accent);
+    font-weight: 600;
+  }
+  /* 展开态限高滚动；展开/收起按钮在滚动区之外，所以永远不会被滚出视野 */
+  .card-tags.expanded {
+    max-height: 148px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 7px 8px 6px;
+    margin: 9px -2px 0;
+    background: var(--border);
+    background: color-mix(in srgb, var(--border) 40%, transparent);
+    border-radius: 10px;
+  }
+  .card-tags-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 7px;
+    padding: 3px 9px;
+    font: inherit;
+    font-size: 11.5px;
+    color: var(--text-dim);
+    background: transparent;
+    border: 1px dashed var(--border-strong);   /* 虚线：与实线的标签 chip 区分开 */
+    border-radius: 999px;
+    cursor: pointer;
+    transition: color .15s, border-color .15s, background .15s;
+  }
+  .card-tags-toggle svg { width: 11px; height: 11px; opacity: .75; }
+  .card-tags-toggle:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+
+  /* 窄屏下的“标签筛选”入口（点击打开底部弹窗） */
+  .tagbar-trigger {
+    display: none;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 13px;
+    font: inherit;
+    font-size: 13px;
+    color: var(--text);
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 999px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .tagbar-trigger:hover { border-color: var(--accent); color: var(--accent); }
+  .tagbar-trigger svg { width: 14px; height: 14px; opacity: .8; }
+  .tagbar-trigger .badge {
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--bg-elev);
+    background: var(--accent);
+    border-radius: 999px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---------- 标签弹窗（窄屏底部抽屉） ---------- */
+  .sheet {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .sheet-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(10, 14, 22, .52);
+    opacity: 0;
+    transition: opacity .22s ease;
+  }
+  .sheet.open .sheet-backdrop { opacity: 1; }
+
+  .sheet-panel {
+    position: relative;
+    width: 100%;
+    max-width: 560px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 18px 18px 0 0;
+    box-shadow: 0 -10px 44px rgba(0, 0, 0, .3);
+    transform: translateY(16px);
+    transition: transform .22s ease;
+  }
+  .sheet.open .sheet-panel { transform: translateY(0); }
+
+  .sheet-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 14px 16px 11px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sheet-title { font-size: 15px; font-weight: 700; }
+  .sheet-title .sub { margin-left: 7px; font-size: 12px; font-weight: 400; color: var(--text-faint); }
+  .sheet-close {
+    flex: none;
+    width: 34px; height: 34px;
+    display: grid; place-items: center;
+    border: 0; border-radius: 50%;
+    background: transparent;
+    color: var(--text-dim);
+    font-size: 22px; line-height: 1;
+    cursor: pointer;
+  }
+  .sheet-close:hover { background: var(--border); color: var(--text); }
+
+  /* 弹窗工具区：搜索框 + 已选标签条 + 截断提示（固定在可滚动区上方） */
+  .sheet-tools {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 11px 16px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sheet-tools .tag-search { padding: 8px 13px; font-size: 13.5px; border-radius: 10px; }
+  .sheet-selected { display: flex; flex-wrap: wrap; gap: 6px; max-height: 84px; overflow-y: auto; }
+  .sheet-hint { margin: 0; font-size: 12px; color: var(--text-faint); }
+
+  /* 弹窗内标签：更大的触摸目标，可滚动 */
+  .sheet-body {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 14px 16px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+  .sheet-body .chip { padding: 8px 14px; font-size: 13px; }
+
+  .sheet-foot {
+    display: flex;
+    gap: 10px;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid var(--border);
+  }
+  .sheet-foot .tagbar-btn {
+    flex: 0 0 auto;
+    padding: 10px 16px;
+    font-size: 13.5px;
+    border-radius: 11px;
+  }
+  .sheet-done {
+    flex: 1 1 auto;
+    padding: 10px 16px;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--bg-elev);
+    background: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 11px;
+    cursor: pointer;
+  }
+  .sheet-done:hover { filter: brightness(1.08); }
+
+  body.no-scroll { overflow: hidden; }
 
   /* ---------- 分页 ---------- */
   .pager {
@@ -427,6 +759,15 @@
     .state { padding: 44px 14px; }
     .pager { gap: 8px 12px; margin-top: 16px; }
     .page-btn { min-width: 32px; height: 32px; padding: 0 8px; font-size: 13px; }
+    /* 标签筛选：窄屏收起为一颗按钮，点开底部弹窗（标签多时不挤在一起、触摸目标更大） */
+    .tagbar { flex-wrap: nowrap; gap: 8px; }
+    .tagbar-label { display: none; }
+    .taglist { display: none; }
+    #tagSearchInline { display: none; }   /* 只隐藏内联搜索框，弹窗内的搜索框必须保留 */
+    .tag-cap-hint { display: none; }
+    #tagMoreBtn { display: none; }
+    .tagbar-trigger { display: inline-flex; }
+    .tagbar-hint { display: none; }
   }
 
   @media (max-width: 400px) {
@@ -492,6 +833,33 @@
     </div>
 
     <span class="result-info" id="resultInfo" role="status" aria-live="polite"></span>
+
+    <!-- 标签筛选：与关键词筛选可同时生效（标签之间为“同时满足”） -->
+    <div class="tagbar" id="tagbar" hidden>
+      <span class="tagbar-label">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M20.6 13.4 12 22l-9-9V4h9l8.6 8.6a1.4 1.4 0 0 1 0 2z"/>
+          <circle cx="7.5" cy="7.5" r="1.2"/>
+        </svg>
+        标签
+      </span>
+      <div class="taglist" id="tagList" role="group" aria-label="标签筛选"></div>
+      <input class="tag-search" id="tagSearchInline" type="search" placeholder="搜索标签…"
+             autocomplete="off" spellcheck="false" aria-label="搜索标签" hidden>
+      <span class="tag-cap-hint" id="tagCapHint" hidden></span>
+      <button class="tagbar-trigger" id="tagOpenBtn" type="button" aria-haspopup="dialog">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M20.6 13.4 12 22l-9-9V4h9l8.6 8.6a1.4 1.4 0 0 1 0 2z"/>
+          <circle cx="7.5" cy="7.5" r="1.2"/>
+        </svg>
+        标签筛选<span class="badge" id="tagOpenCount" hidden></span>
+      </button>
+      <span class="tagbar-hint" id="tagHint"></span>
+      <button class="tagbar-btn" id="tagMoreBtn" type="button" hidden aria-expanded="false"></button>
+      <button class="tagbar-btn primary" id="tagClearBtn" type="button" hidden>清除标签</button>
+    </div>
   </div>
 </header>
 
@@ -524,6 +892,28 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+<!-- 标签弹窗：窄屏下替代内联标签栏，避免标签密集时难以点击 -->
+<div class="sheet" id="tagSheet" hidden>
+  <div class="sheet-backdrop" id="tagSheetBackdrop"></div>
+  <div class="sheet-panel" role="dialog" aria-modal="true" aria-label="标签筛选">
+    <div class="sheet-head">
+      <span class="sheet-title">标签筛选<span class="sub" id="tagSheetSub"></span></span>
+      <button class="sheet-close" id="tagSheetClose" type="button" aria-label="关闭">×</button>
+    </div>
+    <div class="sheet-tools">
+      <input class="tag-search" id="tagSheetSearch" type="search" placeholder="搜索标签…"
+             autocomplete="off" spellcheck="false" enterkeyhint="search" aria-label="搜索标签">
+      <div class="sheet-selected" id="tagSheetSelected" hidden></div>
+      <p class="sheet-hint" id="tagSheetHint" hidden></p>
+    </div>
+    <div class="sheet-body" id="tagSheetList" role="group" aria-label="全部标签"></div>
+    <div class="sheet-foot">
+      <button class="tagbar-btn primary" id="tagSheetClear" type="button">清除标签</button>
+      <button class="sheet-done" id="tagSheetDone" type="button">完成</button>
+    </div>
+  </div>
+</div>
+
 <!-- 数据来源：同目录下的 comic.js（定义全局 comics 数组） -->
 <script src="comic.js"></script>
 <script>
@@ -554,12 +944,43 @@
     noResultTitle: document.getElementById('noResultTitle'),
     noResultDesc: document.getElementById('noResultDesc'),
     results: document.getElementById('results'),
+    tagbar: document.getElementById('tagbar'),
+    tagList: document.getElementById('tagList'),
+    tagHint: document.getElementById('tagHint'),
+    tagMoreBtn: document.getElementById('tagMoreBtn'),
+    tagClearBtn: document.getElementById('tagClearBtn'),
+    tagOpenBtn: document.getElementById('tagOpenBtn'),
+    tagOpenCount: document.getElementById('tagOpenCount'),
+    tagSearchInline: document.getElementById('tagSearchInline'),
+    tagCapHint: document.getElementById('tagCapHint'),
+    tagSheet: document.getElementById('tagSheet'),
+    tagSheetBackdrop: document.getElementById('tagSheetBackdrop'),
+    tagSheetList: document.getElementById('tagSheetList'),
+    tagSheetSub: document.getElementById('tagSheetSub'),
+    tagSheetSearch: document.getElementById('tagSheetSearch'),
+    tagSheetSelected: document.getElementById('tagSheetSelected'),
+    tagSheetHint: document.getElementById('tagSheetHint'),
+    tagSheetClose: document.getElementById('tagSheetClose'),
+    tagSheetClear: document.getElementById('tagSheetClear'),
+    tagSheetDone: document.getElementById('tagSheetDone'),
     pager: document.getElementById('pager'),
     pageInfo: document.getElementById('pageInfo'),
     pageButtons: document.getElementById('pageButtons'),
     pageSizeSelect: document.getElementById('pageSizeSelect'),
     toast: document.getElementById('toast')
   };
+
+  /* 元素缺失（例如 index.html 与脚本版本不匹配）时给出明确提示，而不是整页无响应 */
+  var missing = [];
+  Object.keys(els).forEach(function (k) { if (!els[k]) missing.push(k); });
+  if (missing.length) {
+    if (els.noResult) els.noResult.hidden = false;
+    if (els.noResultTitle) els.noResultTitle.textContent = '页面结构不匹配';
+    if (els.noResultDesc) {
+      els.noResultDesc.textContent = 'index.html 中缺少元素：' + missing.join('、');
+    }
+    return;
+  }
 
   if (!DATA) {
     els.noResult.hidden = false;
@@ -610,10 +1031,27 @@
   }
 
   /* ============ 3. 数据预处理 ============ */
+  function tagKeyOf(label) {
+    return norm(label).replace(/\s+/g, ' ').trim();
+  }
+
   var ITEMS = DATA.map(function (raw, index) {
     var name = String(raw && raw.name != null ? raw.name : '(未命名)');
     var pics = Number(raw && raw.pics);
     var uptime = String(raw && raw.uptime != null ? raw.uptime : '');
+
+    /* tags 可能缺失 / 不是数组 / 含空值，这里统一清洗为两个平行数组：显示用 tags、匹配用 tagKeys */
+    var tags = [], tagKeys = [];
+    var rawTags = raw && Array.isArray(raw.tags) ? raw.tags : [];
+    for (var i = 0; i < rawTags.length; i++) {
+      var label = String(rawTags[i] == null ? '' : rawTags[i]).trim();
+      if (!label) continue;
+      var key = tagKeyOf(label);
+      if (!key || tagKeys.indexOf(key) !== -1) continue;
+      tags.push(label);
+      tagKeys.push(key);
+    }
+
     return {
       index: index,
       name: name,
@@ -622,9 +1060,47 @@
       pics: isFinite(pics) ? pics : null,
       uptime: uptime,
       time: Date.parse(uptime.replace(/-/g, '/')) || 0,
+      tags: tags,
+      tagKeys: tagKeys,
       /* 检索范围仅限 name 字段（归一化后比较）；size / pics / uptime 只用于展示与排序 */
       nameKey: norm(name)
     };
+  });
+
+  /* 标签索引：按出现次数从多到少排序，供筛选栏渲染 */
+  var TAG_INDEX = (function () {
+    var seen = {}, list = [];
+    ITEMS.forEach(function (it) {
+      for (var i = 0; i < it.tagKeys.length; i++) {
+        var key = it.tagKeys[i];
+        var rec = seen[key];
+        if (!rec) {
+          rec = { key: key, label: it.tags[i], count: 0 };
+          seen[key] = rec;
+          list.push(rec);
+        }
+        rec.count++;
+      }
+    });
+    list.sort(function (a, b) {
+      return b.count - a.count || a.label.localeCompare(b.label, 'zh-Hans-CN');
+    });
+    return list;
+  })();
+
+  var TAG_BY_KEY = {}, TAG_COUNT = {};
+  TAG_INDEX.forEach(function (t) { TAG_BY_KEY[t.key] = t; TAG_COUNT[t.key] = t.count; });
+
+  /* 卡片标签按“全局出现次数”从多到少排列（次数相同保持原始顺序）：
+     标签多的条目里，有意义的标签不会被夹杂的冷门标签挤到折叠区之外 */
+  ITEMS.forEach(function (it) {
+    if (it.tagKeys.length < 2) return;
+    var order = it.tagKeys.map(function (key, i) {
+      return { key: key, label: it.tags[i], n: TAG_COUNT[key] || 0, i: i };
+    });
+    order.sort(function (a, b) { return b.n - a.n || a.i - b.i; });
+    it.tagKeys = order.map(function (o) { return o.key; });
+    it.tags = order.map(function (o) { return o.label; });
   });
 
   /* 顶部：全部数据的总数与总大小 */
@@ -639,7 +1115,9 @@
      翻页、改每页条数时零重复计算（不重新过滤、不重新排序）。 */
   var state = {
     tokens: [],     // 当前关键词分词
-    cacheKey: '',   // 缓存指纹（分词 + 排序）
+    tags: [],       // 当前选中的标签 key（多个标签为“同时满足”）
+    tagQuery: '',   // 标签搜索框内容
+    cacheKey: '',   // 缓存指纹（分词 + 标签 + 排序）
     cached: null,   // { list, bytes, pics }
     page: 1
   };
@@ -649,10 +1127,13 @@
     return t;
   }
 
-  /* 只匹配 name 字段；多关键词之间为 AND，关键词内部为子串匹配 */
-  function matchAll(item, tokens) {
-    for (var i = 0; i < tokens.length; i++) {
-      if (item.nameKey.indexOf(tokens[i]) === -1) return false;
+  /* 关键词只匹配 name；标签筛选与关键词筛选同时生效（AND） */
+  function matchAll(item, tokens, tags) {
+    for (var i = 0; i < tags.length; i++) {
+      if (item.tagKeys.indexOf(tags[i]) === -1) return false;
+    }
+    for (var j = 0; j < tokens.length; j++) {
+      if (item.nameKey.indexOf(tokens[j]) === -1) return false;
     }
     return true;
   }
@@ -668,12 +1149,12 @@
     'time:asc':  function (a, b) { return a.time - b.time; }
   };
 
-  /* 过滤 + 排序 + 汇总，仅在关键词或排序变化时执行一次 */
+  /* 过滤 + 排序 + 汇总，仅在关键词 / 标签 / 排序变化时执行一次 */
   function results() {
-    var key = state.tokens.join('\u0001') + '|' + els.sortSelect.value;
+    var key = state.tokens.join('\u0001') + '|' + state.tags.join('\u0001') + '|' + els.sortSelect.value;
     if (key === state.cacheKey && state.cached) return state.cached;
 
-    var list = ITEMS.filter(function (it) { return matchAll(it, state.tokens); });
+    var list = ITEMS.filter(function (it) { return matchAll(it, state.tokens, state.tags); });
 
     var cmp = COMPARATORS[els.sortSelect.value];
     if (cmp) list.sort(cmp);
@@ -718,6 +1199,8 @@
     }
   }
 
+  var CARD_TAG_LIMIT = 6;
+
   function renderCard(item, tokens) {
     /* pics 缺失或为 0（如 .rar 包）都视为张数未知；单位用“张”，避免与分页的“页”混淆 */
     var picsHtml = (item.pics == null || item.pics <= 0)
@@ -726,20 +1209,244 @@
         'stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18v14H3z"/><path d="M3 16l5-4 4 3 3-3 6 5"/></svg>' +
         formatNum(item.pics) + ' 张</span>';
 
+    /* 时间只显示日期（完整时间在 title 提示里），省下的宽度让信息行单行排得下 */
+    var dateOnly = item.uptime.slice(0, 10);
     var timeHtml = item.uptime
-      ? '<span class="tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
-        'stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>' +
-        escapeHtml(item.uptime) + '</span>'
+      ? '<span class="tag" title="' + escapeHtml(item.uptime) + '"><svg viewBox="0 0 24 24" fill="none" ' +
+        'stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+        '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>' + escapeHtml(dateOnly) + '</span>'
       : '';
 
+    /* 卡片标签：可直接点击加入筛选；标签很多时限高滚动，展开/收起按钮放在滚动区外 */
+    var tagsHtml = '';
+    if (item.tags.length) {
+      var expanded = !!expandedCards[item.index];
+      var many = item.tags.length > CARD_TAG_LIMIT;
+      var shown = expanded ? item.tags.length : Math.min(item.tags.length, CARD_TAG_LIMIT);
+
+      tagsHtml = '<div class="card-tags' + (expanded && many ? ' expanded' : '') + '">';
+      for (var i = 0; i < shown; i++) {
+        var on = state.tags.indexOf(item.tagKeys[i]) !== -1;
+        tagsHtml += '<button class="chip' + (on ? ' on' : '') + '" type="button" data-tag="' +
+          escapeHtml(item.tagKeys[i]) + '" title="按标签「' + escapeHtml(item.tags[i]) + '」筛选">' +
+          '<span class="lbl">' + escapeHtml(item.tags[i]) + '</span></button>';
+      }
+      tagsHtml += '</div>';
+
+      /* 切换按钮固定在标签区外面：滚动区内永远不需要滚动就能点到它 */
+      if (many) {
+        tagsHtml += '<button class="card-tags-toggle" type="button" data-expand-tags="' + item.index +
+          '" aria-expanded="' + (expanded ? 'true' : 'false') + '">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" ' +
+          'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="' +
+          (expanded ? 'M6 15l6-6 6 6' : 'M6 9l6 6 6-6') + '"/></svg>' +
+          (expanded ? '收起标签' : '展开全部 ' + formatNum(item.tags.length) + ' 个标签') +
+          '</button>';
+      }
+    }
+
     return '<article class="card" data-index="' + item.index + '">' +
+      '<button class="copy-btn" type="button" data-copy="1" title="复制名称" aria-label="复制名称">' +
+        '<svg class="i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" ' +
+        'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+        '<rect x="9" y="9" width="11" height="11" rx="2"/>' +
+        '<path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg>' +
+        '<svg class="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" ' +
+        'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+        '<path d="M4 12.5l5.5 5.5L20 6.5"/></svg>' +
+      '</button>' +
       '<h2 class="card-title">' + highlight(item.name, tokens) + '</h2>' +
       '<div class="card-meta">' +
         '<span class="tag tag-size">' + escapeHtml(item.sizeText) + '</span>' +
         picsHtml + timeHtml +
-        '<button class="copy-btn" type="button" data-copy="1">复制名称</button>' +
       '</div>' +
+      tagsHtml +
     '</article>';
+  }
+
+  /* ---------- 标签筛选栏 ---------- */
+  var TAG_COLLAPSED = 12;    // 折叠时展示的标签数量（超出部分点“展开”）
+  var TAG_RENDER_LIMIT = 300; // 单次最多渲染的标签数，保证标签上千时 DOM 仍然受控
+  var tagExpanded = false;
+  var tagSheetOpen = false;
+  var expandedCards = {};    // 展开了全部标签的卡片（按条目下标）
+
+  /* 窄屏（≤720px）使用底部弹窗，宽屏使用内联标签栏 —— 与 CSS 媒体查询保持一致 */
+  function isNarrowScreen() {
+    if (window.matchMedia) return window.matchMedia('(max-width: 720px)').matches;
+    return (window.innerWidth || 1024) <= 720;
+  }
+
+  /* 按关键词筛选标签：完全匹配 > 前缀匹配 > 包含匹配，同档内保持“按热度”顺序 */
+  function filterTags(query) {
+    if (!query) return TAG_INDEX;
+    var nq = norm(query);
+    if (!nq) return TAG_INDEX;
+    var exact = [], prefix = [], sub = [];
+    for (var i = 0; i < TAG_INDEX.length; i++) {
+      var t = TAG_INDEX[i];
+      if (t.key === nq) exact.push(t);
+      else if (t.key.indexOf(nq) === 0) prefix.push(t);
+      else if (t.key.indexOf(nq) !== -1) sub.push(t);
+    }
+    return exact.concat(prefix, sub);
+  }
+
+  /* 组装一次要渲染的标签：筛选 → 截断 → 追加已选（保证已选标签始终可见） */
+  function tagsForList(limit) {
+    var matched = filterTags(state.tagQuery);
+    var list = limit && matched.length > limit ? matched.slice(0, limit) : matched.slice();
+    var truncated = list.length < matched.length;
+
+    for (var i = 0; i < state.tags.length; i++) {
+      var key = state.tags[i], found = false;
+      for (var j = 0; j < list.length; j++) { if (list[j].key === key) { found = true; break; } }
+      if (!found && TAG_BY_KEY[key]) list.push(TAG_BY_KEY[key]);
+    }
+    return { list: list, total: matched.length, capped: truncated };
+  }
+
+  /* 折叠时：前 N 个 + 已选中的标签（保证选中的标签始终可见，同时“收起”仍然有效） */
+  function visibleTags() {
+    if (tagExpanded) return tagsForList(TAG_RENDER_LIMIT);
+    var head = TAG_INDEX.slice(0, TAG_COLLAPSED);
+    for (var i = 0; i < state.tags.length; i++) {
+      var key = state.tags[i], found = false;
+      for (var j = 0; j < head.length; j++) { if (head[j].key === key) { found = true; break; } }
+      if (!found && TAG_BY_KEY[key]) head.push(TAG_BY_KEY[key]);
+    }
+    return { list: head, total: TAG_INDEX.length, capped: false };
+  }
+
+  function chipHtml(t) {
+    var on = state.tags.indexOf(t.key) !== -1;
+    return '<button class="chip' + (on ? ' on' : '') + '" type="button" data-tag="' +
+      escapeHtml(t.key) + '" aria-pressed="' + (on ? 'true' : 'false') +
+      '" title="' + escapeHtml(t.label + ' · ' + formatNum(t.count) + ' 部') + '">' +
+      '<span class="lbl">' + escapeHtml(t.label) + '</span>' +
+      /* 只出现 1 次的标签不显示计数，避免标签多时满屏都是“1” */
+      (t.count > 1 ? '<span class="cnt">' + formatNum(t.count) + '</span>' : '') +
+      '</button>';
+  }
+
+  function tagChipsHtml(list) {
+    var html = '';
+    for (var i = 0; i < list.length; i++) html += chipHtml(list[i]);
+    if (!list.length) {
+      html = '<span class="tag-empty">没有匹配的标签</span>';
+    }
+    return html;
+  }
+
+  /* 已选标签条（弹窗内）：多选后可一眼看到并逐个移除 */
+  function selectedStripHtml() {
+    var html = '';
+    for (var i = 0; i < state.tags.length; i++) {
+      var rec = TAG_BY_KEY[state.tags[i]];
+      if (!rec) continue;
+      html += '<button class="chip on small" type="button" data-remove-tag="' + escapeHtml(rec.key) +
+        '" title="移除标签「' + escapeHtml(rec.label) + '」">' +
+        '<span class="lbl">' + escapeHtml(rec.label) + '</span><span class="x">×</span></button>';
+    }
+    return html;
+  }
+
+  function renderTagBar() {
+    if (!TAG_INDEX.length) {
+      els.tagbar.hidden = true;
+      closeTagSheet();
+      return;
+    }
+    els.tagbar.hidden = false;
+    els.tagbar.classList.toggle('expanded', tagExpanded);
+
+    /* 内联标签栏（宽屏）：窄屏下由 CSS 隐藏，直接跳过渲染以免做无用的 DOM 工作 */
+    if (!isNarrowScreen()) {
+      var view = visibleTags();
+      els.tagList.innerHTML = tagChipsHtml(view.list);
+      els.tagList.classList.toggle('expanded', tagExpanded);
+      els.tagSearchInline.hidden = !tagExpanded;
+      els.tagCapHint.hidden = !(tagExpanded && (view.capped || !view.total));
+      els.tagCapHint.textContent = !view.total
+        ? '没有匹配的标签（已选标签仍会显示）'
+        : (view.capped
+          ? '已显示前 ' + formatNum(view.list.length) + ' 个（共 ' + formatNum(view.total) +
+            ' 个），输入关键词可精确查找'
+          : '');
+    } else {
+      els.tagList.innerHTML = '';
+      els.tagCapHint.hidden = true;
+      els.tagSearchInline.hidden = true;
+    }
+
+    els.tagMoreBtn.hidden = TAG_INDEX.length <= TAG_COLLAPSED;
+    els.tagMoreBtn.textContent = tagExpanded ? '收起标签' : '展开全部 ' + formatNum(TAG_INDEX.length);
+    els.tagMoreBtn.setAttribute('aria-expanded', tagExpanded ? 'true' : 'false');
+
+    /* 窄屏入口按钮 + 选中计数 */
+    els.tagOpenCount.hidden = state.tags.length === 0;
+    els.tagOpenCount.textContent = state.tags.length ? String(state.tags.length) : '';
+
+    /* 弹窗内容（打开时同步刷新，选中后无需关闭即可继续多选） */
+    if (tagSheetOpen) {
+      var sheetView = tagsForList(TAG_RENDER_LIMIT);
+      els.tagSheetList.innerHTML = tagChipsHtml(sheetView.list);
+      els.tagSheetSub.textContent = '共 ' + formatNum(TAG_INDEX.length) + ' 个' +
+        (state.tags.length ? ' · 已选 ' + state.tags.length : '');
+      els.tagSheetSelected.hidden = state.tags.length === 0;
+      els.tagSheetSelected.innerHTML = selectedStripHtml();
+      els.tagSheetHint.hidden = !(sheetView.capped || !sheetView.total);
+      els.tagSheetHint.textContent = !sheetView.total
+        ? '没有匹配的标签（已选标签仍会显示）'
+        : (sheetView.capped
+          ? '已显示前 ' + formatNum(sheetView.list.length) + ' 个（共 ' + formatNum(sheetView.total) +
+            ' 个），输入关键词可精确查找'
+          : '');
+    }
+
+    els.tagClearBtn.hidden = state.tags.length === 0;
+    els.tagHint.textContent = state.tags.length > 1
+      ? '已选 ' + state.tags.length + ' 个标签 · 同时满足'
+      : '';
+  }
+
+  /* 同步两个搜索框的值（跳过正在输入的那个，避免光标跳动） */
+  function syncTagSearchInputs(source) {
+    if (source !== els.tagSearchInline && els.tagSearchInline.value !== state.tagQuery) {
+      els.tagSearchInline.value = state.tagQuery;
+    }
+    if (source !== els.tagSheetSearch && els.tagSheetSearch.value !== state.tagQuery) {
+      els.tagSheetSearch.value = state.tagQuery;
+    }
+  }
+
+  function openTagSheet() {
+    if (tagSheetOpen || !TAG_INDEX.length) return;
+    tagSheetOpen = true;
+    els.tagSheet.hidden = false;
+    els.tagSheetSearch.value = state.tagQuery;
+    renderTagBar();
+    /* 触发 CSS 过渡 */
+    var raf = window.requestAnimationFrame || function (fn) { setTimeout(fn, 0); };
+    raf(function () { if (tagSheetOpen) els.tagSheet.classList.add('open'); });
+    document.body.classList.add('no-scroll');
+  }
+
+  function closeTagSheet() {
+    if (!tagSheetOpen) return;
+    tagSheetOpen = false;
+    /* 关闭时清空标签搜索，下次打开是完整的标签列表 */
+    state.tagQuery = '';
+    els.tagSheetSearch.value = '';
+    els.tagSearchInline.value = '';
+    els.tagSheet.classList.remove('open');
+    document.body.classList.remove('no-scroll');
+    var el = els.tagSheet;
+    setTimeout(function () { if (!tagSheetOpen) el.hidden = true; }, 220);
+  }
+
+  function updateSheetDone(count) {
+    els.tagSheetDone.textContent = '完成（' + formatNum(count) + ' 条）';
   }
 
   /* 页码窗口：首尾页 + 当前页 ±1，中间用省略号收拢 */
@@ -829,17 +1536,26 @@
     if (resetPage !== false) state.page = 1;
 
     var res = results();
-    var isSearch = tokens.length > 0;
-    var head = isSearch ? '匹配 ' : '全部 ';
+    var hasFilter = tokens.length > 0 || state.tags.length > 0;
+    var head = hasFilter ? '匹配 ' : '全部 ';
 
     if (!res.list.length) {
       resetResults();
       els.noResult.hidden = false;
-      els.noResultTitle.textContent = isSearch ? '未找到匹配的漫画' : '暂无数据';
-      els.noResultDesc.textContent = isSearch
-        ? '试试更短的关键词，或检查输入是否有误'
-        : 'comic.js 中的 comics 数组为空。';
+      if (!hasFilter) {
+        els.noResultTitle.textContent = '暂无数据';
+        els.noResultDesc.textContent = 'comic.js 中的 comics 数组为空。';
+      } else if (state.tags.length) {
+        els.noResultTitle.textContent = '没有符合筛选条件的漫画';
+        els.noResultDesc.textContent = state.tags.length > 1
+          ? '当前 ' + state.tags.length + ' 个标签需要同时满足，试试减少标签或清除标签筛选。'
+          : '试试换一个标签，或清除标签筛选。';
+      } else {
+        els.noResultTitle.textContent = '未找到匹配的漫画';
+        els.noResultDesc.textContent = '试试更短的关键词，或检查输入是否有误';
+      }
       els.resultInfo.innerHTML = head + '<b class="accent">0</b> 部 · 合计 <b>0 B</b>';
+      updateSheetDone(0);
       return;
     }
 
@@ -847,6 +1563,7 @@
 
     els.resultInfo.innerHTML = head + '<b class="accent">' + formatNum(res.list.length) + '</b> 部 · 合计 <b>' +
       formatSize(res.bytes) + '</b>' + (res.pics ? ' · 共 <b>' + formatNum(res.pics) + '</b> 张' : '');
+    updateSheetDone(res.list.length);
 
     renderPage(res.list);
   }
@@ -875,6 +1592,71 @@
 
   els.sortSelect.addEventListener('change', function () { apply(true); });
 
+  /* ---------- 标签筛选 ---------- */
+  function toggleTag(key) {
+    if (!key) return;
+    var i = state.tags.indexOf(key);
+    if (i === -1) state.tags.push(key);
+    else state.tags.splice(i, 1);
+    renderTagBar();
+    apply(true);          // 标签变化 → 回到第 1 页
+  }
+
+  /* 筛选栏里的标签（宽屏内联） */
+  els.tagList.addEventListener('click', function (e) {
+    var chip = e.target && e.target.closest ? e.target.closest('.chip[data-tag]') : null;
+    if (chip) toggleTag(chip.getAttribute('data-tag'));
+  });
+
+  /* 展开 / 收起全部标签 */
+  els.tagMoreBtn.addEventListener('click', function () {
+    tagExpanded = !tagExpanded;
+    /* 收起时清空标签搜索，避免留下看不见的过滤条件 */
+    if (!tagExpanded) { state.tagQuery = ''; syncTagSearchInputs(null); }
+    renderTagBar();
+  });
+
+  /* 标签搜索：宽屏内联框 + 窄屏弹窗内框共用同一份状态 */
+  function onTagSearchInput(source) {
+    state.tagQuery = source.value;
+    syncTagSearchInputs(source);
+    renderTagBar();
+  }
+  els.tagSearchInline.addEventListener('input', function () { onTagSearchInput(els.tagSearchInline); });
+  els.tagSheetSearch.addEventListener('input', function () { onTagSearchInput(els.tagSheetSearch); });
+
+  /* 窄屏：打开/关闭标签弹窗 */
+  els.tagOpenBtn.addEventListener('click', openTagSheet);
+  els.tagSheetClose.addEventListener('click', closeTagSheet);
+  els.tagSheetDone.addEventListener('click', closeTagSheet);
+  els.tagSheetBackdrop.addEventListener('click', closeTagSheet);
+
+  els.tagSheetList.addEventListener('click', function (e) {
+    var chip = e.target && e.target.closest ? e.target.closest('.chip[data-tag]') : null;
+    if (chip) toggleTag(chip.getAttribute('data-tag'));
+  });
+
+  /* 弹窗内“已选标签条”：点 × 直接移除 */
+  els.tagSheetSelected.addEventListener('click', function (e) {
+    var chip = e.target && e.target.closest ? e.target.closest('[data-remove-tag]') : null;
+    if (chip) toggleTag(chip.getAttribute('data-remove-tag'));
+  });
+
+  els.tagSheetClear.addEventListener('click', function () {
+    if (!state.tags.length) return;
+    state.tags = [];
+    renderTagBar();
+    apply(true);
+  });
+
+  /* 清除标签（不影响关键词） */
+  els.tagClearBtn.addEventListener('click', function () {
+    if (!state.tags.length) return;
+    state.tags = [];
+    renderTagBar();
+    apply(true);
+  });
+
   els.pageSizeSelect.addEventListener('change', function () {
     pageSizeTouched = true;
     apply(true);          // 每页条数变化 → 回到第 1 页
@@ -887,12 +1669,23 @@
     goToPage(Number(btn.getAttribute('data-page')));
   });
 
-  /* 屏幕尺寸变化时，未手动设置过则跟随默认每页条数 */
+  /* 屏幕尺寸变化时：跨过标签断点则重渲染标签栏；未手动设置过则跟随默认每页条数 */
   var resizeTimer = null;
+  var lastNarrow = isNarrowScreen();
   window.addEventListener('resize', function () {
-    if (pageSizeTouched) return;
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(function () {
+      var narrow = isNarrowScreen();
+      if (narrow !== lastNarrow) {
+        lastNarrow = narrow;
+        if (!narrow) closeTagSheet();   // 变宽：关闭弹窗，回到内联标签栏
+        tagExpanded = false;
+        state.tagQuery = '';
+        syncTagSearchInputs(null);
+        renderTagBar();
+      }
+      if (tagSheetOpen && !narrow) { closeTagSheet(); return; }
+      if (pageSizeTouched) return;
       var next = String(defaultPageSize());
       if (next === els.pageSizeSelect.value) return;
       els.pageSizeSelect.value = next;
@@ -908,6 +1701,11 @@
   });
 
   document.addEventListener('keydown', function (e) {
+    /* 弹窗打开时 Esc 只关闭弹窗 */
+    if (e.key === 'Escape' && tagSheetOpen) {
+      closeTagSheet();
+      return;
+    }
     var tag = (e.target && e.target.tagName) || '';
     var typing = tag === 'INPUT' || tag === 'TEXTAREA' || (e.target && e.target.isContentEditable);
     if ((e.key === '/' && !typing) || ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k')) {
@@ -929,9 +1727,8 @@
   function copyText(text, btn) {
     function done() {
       if (btn) {
-        btn.classList.add('done');
-        btn.textContent = '已复制';
-        setTimeout(function () { btn.classList.remove('done'); btn.textContent = '复制名称'; }, 1400);
+        btn.classList.add('done');              /* CSS 切换成对勾图标 */
+        setTimeout(function () { btn.classList.remove('done'); }, 1400);
       }
       toast('已复制到剪贴板');
     }
@@ -954,7 +1751,24 @@
   }
 
   els.results.addEventListener('click', function (e) {
-    var btn = e.target.closest ? e.target.closest('.copy-btn') : null;
+    var t = e.target;
+    if (!t || !t.closest) return;
+
+    /* 卡片上的标签 → 加入/移出标签筛选 */
+    var chip = t.closest('.chip[data-tag]');
+    if (chip) { toggleTag(chip.getAttribute('data-tag')); return; }
+
+    /* “+N” → 就地展开该卡片的全部标签 */
+    var more = t.closest('[data-expand-tags]');
+    if (more) {
+      var idx = Number(more.getAttribute('data-expand-tags'));
+      if (expandedCards[idx]) delete expandedCards[idx];
+      else expandedCards[idx] = true;
+      if (state.cached) renderPage(state.cached.list);   // 只重渲染当前页
+      return;
+    }
+
+    var btn = t.closest('.copy-btn');
     if (!btn) return;
     var card = btn.closest('.card');
     if (!card) return;
@@ -964,7 +1778,8 @@
 
   /* ============ 8. 初始化 ============ */
   els.pageSizeSelect.value = String(defaultPageSize());
-  apply(true);   // 默认展示全部内容（按上传时间倒序，分页展示）
+  renderTagBar();          // 标签筛选栏（无标签数据时自动隐藏）
+  apply(true);             // 默认展示全部内容（按上传时间倒序，分页展示）
   /* 桌面端自动聚焦输入框（移动端不主动聚焦，避免弹出键盘） */
   if (window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
     els.q.focus({ preventScroll: true });
