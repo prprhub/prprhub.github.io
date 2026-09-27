@@ -993,9 +993,13 @@
   /* ============ 2. 工具函数 ============ */
   var UNIT = { b: 1, kb: 1024, mb: 1048576, gb: 1073741824, tb: 1099511627776 };
 
+  /* 统一把 size 解析成字节数：数字直接视为字节，字符串支持 "21.85 MB" / "22913344" 两种写法 */
   function parseSize(value) {
-    if (typeof value === 'number' && isFinite(value)) return value;
-    var m = String(value == null ? '' : value).trim().match(/^([\d.]+)\s*([kmgt]?i?b)$/i);
+    if (typeof value === 'number') return isFinite(value) && value > 0 ? value : 0;
+    var s = String(value == null ? '' : value).trim();
+    if (!s) return 0;
+    if (/^\d+(\.\d+)?$/.test(s)) return parseFloat(s);   /* 纯数字字符串 = 字节数 */
+    var m = s.match(/^([\d.]+)\s*([kmgt]?i?b)$/i);
     if (!m) return 0;
     var unit = m[2].toLowerCase().replace('i', '');
     var factor = UNIT[unit] || 0;
@@ -1040,6 +1044,14 @@
     var pics = Number(raw && raw.pics);
     var uptime = String(raw && raw.uptime != null ? raw.uptime : '');
 
+    /* size 现在是字节数（旧数据可能是 "21.85 MB" 这类字符串）：
+       统一解析成字节，展示时一律格式化成带单位的大小 —— 与顶栏总计用同一个格式化函数，口径一致 */
+    var rawSize = raw && raw.size != null ? raw.size : null;
+    var sizeBytes = parseSize(rawSize);
+    var sizeText = sizeBytes > 0
+      ? formatSize(sizeBytes)
+      : (rawSize == null ? '—' : (String(rawSize).trim() === '0' ? '0 B' : String(rawSize)));
+
     /* tags 可能缺失 / 不是数组 / 含空值，这里统一清洗为两个平行数组：显示用 tags、匹配用 tagKeys */
     var tags = [], tagKeys = [];
     var rawTags = raw && Array.isArray(raw.tags) ? raw.tags : [];
@@ -1055,8 +1067,8 @@
     return {
       index: index,
       name: name,
-      sizeText: String(raw && raw.size != null ? raw.size : '—'),
-      sizeBytes: parseSize(raw && raw.size),
+      sizeText: sizeText,
+      sizeBytes: sizeBytes,
       pics: isFinite(pics) ? pics : null,
       uptime: uptime,
       time: Date.parse(uptime.replace(/-/g, '/')) || 0,
