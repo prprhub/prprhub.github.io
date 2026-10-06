@@ -1024,6 +1024,56 @@
     return String(s == null ? '' : s).normalize('NFKC').toLowerCase();
   }
 
+  /* 检索专用归一化：先解码 HTML 实体（&#124; → |、&nbsp; → 空格、&amp; → &），再 NFKC + 小写。
+     展示一律用原始文本（原样字符），只有“匹配用的键”和“关键词”走这条口径。 */
+  function searchKey(s) {
+    return norm(decodeEntities(String(s == null ? '' : s)));
+  }
+
+  /* 匹配键 = 「解码后」+ 分隔符 + 「原样」两份拼在一起。
+     这样既能用等价字符搜（| → &#124;），也能直接搜原样写法（&# → &#124;）。
+     分隔符用 \u0001，正常输入不会包含，因此不会跨两份误匹配。 */
+  var KEY_SEP = '\u0001';
+  function buildNameKey(raw) {
+    return searchKey(raw) + KEY_SEP + norm(raw);
+  }
+
+  function keyMatches(key, token) {
+    return key.indexOf(token) !== -1;
+  }
+
+  /* 数据里混入了被 HTML 转义的字符（&#124; = |、&nbsp; = 不换行空格、&amp; = &、&#039; = '）：
+     载入时统一解码，让展示、检索、复制都用真实字符，避免“用等价字符搜不到”。
+     只认合法实体写法，普通的 & 原样保留；不认识的命名实体也不动。 */
+  var NAMED_ENTITIES = {
+    amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: '\u00a0',
+    hellip: '…', mdash: '—', ndash: '–', times: '×', middot: '·', bull: '•',
+    copy: '©', reg: '®', trade: '™', deg: '°', plusmn: '±', sect: '§', para: '¶',
+    laquo: '«', raquo: '»', ldquo: '“', rdquo: '”', lsquo: '‘', rsquo: '’',
+    frac12: '½', frac14: '¼', frac34: '¾', euro: '€', pound: '£', yen: '¥', cent: '¢'
+  };
+
+  function codePointToString(cp) {
+    if (!isFinite(cp) || cp <= 0 || cp > 0x10FFFF) return null;
+    if (cp >= 0xD800 && cp <= 0xDFFF) return null;      /* 代理区码点非法 */
+    try { return String.fromCodePoint(cp); } catch (e) { return null; }
+  }
+
+  function decodeEntities(s) {
+    if (s.indexOf('&') === -1) return s;                 /* 绝大多数名字没有实体，直接跳过 */
+    return s.replace(/&(?:#(\d+)|#[xX]([0-9a-fA-F]+)|([a-zA-Z][a-zA-Z0-9]*));/g,
+      function (whole, dec, hex, name) {
+        var ch = null;
+        if (dec) ch = codePointToString(parseInt(dec, 10));
+        else if (hex) ch = codePointToString(parseInt(hex, 16));
+        else {
+          var named = NAMED_ENTITIES[String(name).toLowerCase()];
+          return named == null ? whole : named;
+        }
+        return ch == null ? whole : ch;
+      });
+  }
+
   function escapeHtml(s) {
     return String(s).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
@@ -1036,10 +1086,11 @@
 
   /* ============ 3. 数据预处理 ============ */
   function tagKeyOf(label) {
-    return norm(label).replace(/\s+/g, ' ').trim();
+    return searchKey(label).replace(/\s+/g, ' ').trim();
   }
 
   var ITEMS = DATA.map(function (raw, index) {
+    /* 名称按原始文本展示（原样字符）；只有匹配用的 nameKey 走解码后的检索口径 */
     var name = String(raw && raw.name != null ? raw.name : '(未命名)');
     var pics = Number(raw && raw.pics);
     var uptime = String(raw && raw.uptime != null ? raw.uptime : '');
@@ -1056,6 +1107,7 @@
     var tags = [], tagKeys = [];
     var rawTags = raw && Array.isArray(raw.tags) ? raw.tags : [];
     for (var i = 0; i < rawTags.length; i++) {
+      /* 标签同样原样展示，但匹配用的 key 解码后比较 */
       var label = String(rawTags[i] == null ? '' : rawTags[i]).trim();
       if (!label) continue;
       var key = tagKeyOf(label);
@@ -1074,8 +1126,8 @@
       time: Date.parse(uptime.replace(/-/g, '/')) || 0,
       tags: tags,
       tagKeys: tagKeys,
-      /* 检索范围仅限 name 字段（归一化后比较）；size / pics / uptime 只用于展示与排序 */
-      nameKey: norm(name)
+      /* 检索范围仅限 name 字段；匹配键同时包含“解码后”和“原样”两种写法 */
+      nameKey: buildNameKey(name)
     };
   });
 
@@ -1087,7 +1139,8 @@
         var key = it.tagKeys[i];
         var rec = seen[key];
         if (!rec) {
-          rec = { key: key, label: it.tags[i], count: 0 };
+          /* search：标签搜索框用的双份匹配键（解码后 + 原样），与名称同一套规则 */
+          rec = { key: key, label: it.tags[i], count: 0, search: key + KEY_SEP + norm(it.tags[i]) };
           seen[key] = rec;
           list.push(rec);
         }
@@ -1135,7 +1188,8 @@
   };
 
   function tokenize(query) {
-    var t = norm(query).split(/\s+/).filter(Boolean);
+    /* 关键词里写实体写法（&#124;）或等价字符（|）都归一成同一口径 */
+    var t = searchKey(query).split(/\s+/).filter(Boolean);
     return t;
   }
 
@@ -1197,15 +1251,66 @@
   }
 
   /* ============ 5. 渲染 ============ */
-  function highlight(name, tokens) {
+  /* 名称按原始文本（原样字符）渲染，但关键词是按“解码后”的口径匹配的。
+     所以命中处可能是实体写法：搜 | 时名称里却是 &#124;。
+     这里为每个关键词额外生成“实体写法”分支，让高亮同样能标出来，避免出现“命中了却看不出为什么”。 */
+
+  /* 字符 → 它在原始文本里可能出现的实体写法（反向表，如 | ↔ &#124;） */
+  var ENTITY_ALIASES = (function () {
+    var m = {};
+    Object.keys(NAMED_ENTITIES).forEach(function (n) {
+      var ch = NAMED_ENTITIES[n];
+      (m[ch] || (m[ch] = [])).push('&' + n + ';');
+    });
+    return m;
+  })();
+
+  function charPattern(ch) {
+    /* 注意：这里匹配的是“已经被 escapeHtml 处理过”的名称文本，
+       所以实体写法本身也要再转义一次（&#124; → &amp;#124;） */
+    var raw = [ch];
+    var cp = ch.codePointAt(0);
+    if (isFinite(cp) && cp > 0) {
+      var hex = cp.toString(16);
+      raw.push('&#' + cp + ';', '&#x' + hex + ';', '&#X' + hex.toUpperCase() + ';');
+    }
+    var alias = ENTITY_ALIASES[ch];
+    if (alias) raw = raw.concat(alias);
+
+    var seen = {}, out = [];
+    for (var i = 0; i < raw.length; i++) {
+      var esc = escapeHtml(raw[i]);
+      if (seen[esc]) continue;
+      seen[esc] = 1;
+      out.push(escapeRegExp(esc));
+    }
+    return '(?:' + out.join('|') + ')';
+  }
+
+  var HIGHLIGHT_ENTITY_MAX = 80;   /* 关键词过长时只做明文匹配，避免正则过分膨胀 */
+
+  /* 每次渲染只编译一次高亮正则（而不是每张卡片编译一次） */
+  function buildHighlightRegex(tokens) {
+    if (!tokens.length) return null;
+    var parts = [];
+    for (var i = 0; i < tokens.length; i++) {
+      var t = tokens[i];
+      if (!t) continue;
+      var literal = escapeRegExp(escapeHtml(t));
+      if (t.length > HIGHLIGHT_ENTITY_MAX) { parts.push(literal); continue; }
+      var per = '';
+      for (var j = 0; j < t.length; j++) per += charPattern(t[j]);
+      parts.push('(?:' + literal + '|' + per + ')');   /* 明文写法优先，实体写法兜底 */
+    }
+    if (!parts.length) return null;
+    try { return new RegExp('(' + parts.join('|') + ')', 'gi'); } catch (e) { return null; }
+  }
+
+  function highlight(name, re) {
     var html = escapeHtml(name);
-    if (!tokens.length) return html;
-    var parts = tokens
-      .map(function (t) { return escapeRegExp(escapeHtml(t)); })
-      .filter(function (t) { return t.length > 0; });
-    if (!parts.length) return html;
+    if (!re) return html;
     try {
-      return html.replace(new RegExp('(' + parts.join('|') + ')', 'gi'), '<mark>$1</mark>');
+      return html.replace(re, '<mark>$1</mark>');
     } catch (e) {
       return html;
     }
@@ -1213,7 +1318,7 @@
 
   var CARD_TAG_LIMIT = 6;
 
-  function renderCard(item, tokens) {
+  function renderCard(item, tokens, highlightRe) {
     /* pics 缺失或为 0（如 .rar 包）都视为张数未知；单位用“张”，避免与分页的“页”混淆 */
     var picsHtml = (item.pics == null || item.pics <= 0)
       ? '<span class="tag">张数未知</span>'
@@ -1267,7 +1372,7 @@
         'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
         '<path d="M4 12.5l5.5 5.5L20 6.5"/></svg>' +
       '</button>' +
-      '<h2 class="card-title">' + highlight(item.name, tokens) + '</h2>' +
+      '<h2 class="card-title">' + highlight(item.name, highlightRe) + '</h2>' +
       '<div class="card-meta">' +
         '<span class="tag tag-size">' + escapeHtml(item.sizeText) + '</span>' +
         picsHtml + timeHtml +
@@ -1292,14 +1397,14 @@
   /* 按关键词筛选标签：完全匹配 > 前缀匹配 > 包含匹配，同档内保持“按热度”顺序 */
   function filterTags(query) {
     if (!query) return TAG_INDEX;
-    var nq = norm(query);
+    var nq = searchKey(query);
     if (!nq) return TAG_INDEX;
     var exact = [], prefix = [], sub = [];
     for (var i = 0; i < TAG_INDEX.length; i++) {
       var t = TAG_INDEX[i];
       if (t.key === nq) exact.push(t);
       else if (t.key.indexOf(nq) === 0) prefix.push(t);
-      else if (t.key.indexOf(nq) !== -1) sub.push(t);
+      else if (t.search.indexOf(nq) !== -1) sub.push(t);
     }
     return exact.concat(prefix, sub);
   }
@@ -1504,7 +1609,8 @@
     var slice = list.slice(start, start + size);
 
     var html = '';
-    for (var i = 0; i < slice.length; i++) html += renderCard(slice[i], state.tokens);
+    var highlightRe = buildHighlightRegex(state.tokens);   /* 每次渲染只编译一次 */
+    for (var i = 0; i < slice.length; i++) html += renderCard(slice[i], state.tokens, highlightRe);
 
     els.results.innerHTML = html;
     els.results.hidden = false;
